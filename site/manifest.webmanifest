@@ -1,0 +1,15 @@
+{
+  "name": "kcbet",
+  "short_name": "kcbet",
+  "description": "Pronostics de football et résultats publiés",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EEF3F2",
+  "theme_color": "#0B5F6B",
+  "icons": [
+    
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

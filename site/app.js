@@ -1,6 +1,6 @@
 const D = window.KC;
 const ISSUES=["1","X","2"];
-const LG=Object.fromEntries(D.fixtures.map(f=>[f.lg,f.league]));
+const LG=Object.fromEntries(D.fixtures.map(f=>[f.lg,f.country+" · "+f.league]));
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const nf=(x,d=2)=>Number(x).toLocaleString("fr-FR",{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -14,13 +14,13 @@ const parseD=s=>{const[d,m,y]=s.split("/").map(Number);return new Date(y,m-1,d)}
 const dayLabel=s=>parseD(s).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
 const STRAT=Object.fromEntries(D.table.map(t=>[t.label,t]));
 const BIG=STRAT["Gros favoris (proba marche >= 73 %)"];
-const big=f=>Math.max(...f.market)>=.73;
+const big=f=>!f.far&&Math.max(...f.market)>=.73;
 const DCR=D.dc.sets.all.regle_avg;
 const pickLabel=f=>[f.home,"Nul",f.away][f.market.indexOf(Math.max(...f.market))];
 const devig2=(a,b)=>a&&b?(1/a)/(1/a+1/b):null;
 
 /* ---------- Matchs ---------- */
-const S={league:"all",day:"all",open:new Set(),mine:{},ticket:store.get("jc-ticket",null),stake:store.get("jc-stake",1000),period:"all"};
+const S={league:"all",day:"",kind:"all",open:new Set(),mine:{},ticket:store.get("jc-ticket",null),stake:store.get("jc-stake",1000),period:"all"};
 function chips(el,items,cur,fn){el.innerHTML=items.map(([v,l])=>`<button class="chip" type="button" data-v="${esc(v)}" aria-pressed="${v===cur}">${esc(l)}</button>`).join("");
   el.onclick=e=>{const b=e.target.closest("button");if(b)fn(b.dataset.v)}}
 function barHTML(p){return `<div class="bar" role="img" aria-label="Domicile ${pct(p[0])}, nul ${pct(p[1])}, extérieur ${pct(p[2])}">${[["s1",0],["sx",1],["s2",2]].map(([c,i])=>`<i class="${c}" style="width:${p[i]*100}%"></i>`).join("")}</div>
@@ -31,33 +31,45 @@ function verdict(f,i){const o=parseFloat(S.mine[f.key+i]);if(!o||o<=1)return"";c
   return `${esc(ISSUES[i])} : ${t}`}
 function detailHTML(f){
   const pO=devig2(f.ao25,f.au25),inT=(S.ticket||[]).filter(l=>l.key===f.key).map(l=>l.i);
-  return `<div class="scroll"><table><thead><tr><th>Issue</th><th>Proba</th><th>Juste prix</th><th>Moyenne</th><th>Meilleure</th><th>Ma cote</th><th></th></tr></thead><tbody>
-  ${ISSUES.map((n,i)=>`<tr><td>${n==="1"?esc(f.home):n==="2"?esc(f.away):"Nul"}</td><td>${pct(f.market[i])}</td><td>${nf(1/f.market[i])}</td><td>${nf(f.odds[i])}</td><td>${nf(f.max[i])}</td>
+  const rows=ISSUES.map((n,i)=>`<tr><td>${n==="1"?esc(f.home):n==="2"?esc(f.away):"Nul"}</td><td>${pct(f.market[i])}</td><td>${nf(1/f.market[i])}</td>${f.far?"":`<td>${nf(f.odds[i])}</td><td>${nf(f.max[i])}</td>`}
   <td><input class="mini" id="mc-${f.key}-${i}" data-mine="${f.key}" data-i="${i}" type="number" min="1.01" step="0.01" inputmode="decimal" aria-label="Ma cote pour ${n}" value="${esc(S.mine[f.key+i]||"")}"></td>
-  <td><button class="ghost" type="button" data-add="${f.key}" data-i="${i}">${inT.includes(i)?"Retirer":"Au ticket"}</button></td></tr>`).join("")}</tbody></table></div>
+  ${f.far?"":`<td><button class="ghost" type="button" data-add="${f.key}" data-i="${i}">${inT.includes(i)?"Retirer":"Au ticket"}</button></td>`}</tr>`).join("");
+  return `${barHTML(f.market)}${f.far?'<p class="warnbox">Prévision Dixon-Coles seule, sans cote du marché, donc moins précise. La date peut changer, et elle ne compte pas dans nos résultats.</p>':""}
+  <div class="scroll"><table><thead><tr><th>Issue</th><th>Proba</th><th>Juste prix</th>${f.far?"":"<th>Moyenne</th><th>Meilleure</th>"}<th>Ma cote</th>${f.far?"":"<th></th>"}</tr></thead><tbody>${rows}</tbody></table></div>
   <p class="verdict" id="v-${f.key}" role="status">${[0,1,2].map(i=>verdict(f,i)).filter(Boolean).join("<br>")}</p>
   <div class="second">
-    ${pO?`<div class="kv"><b>${pct(pO)}</b><small>Plus de 2,5 buts (marché)</small></div>`:""}
+    ${pO?`<div class="kv"><b>${pct(pO)}</b><small>Plus de 2,5 buts (marché)</small></div>`:`<div class="kv"><b>${pct(f.o25)}</b><small>Plus de 2,5 buts (Dixon-Coles)</small></div>`}
     <div class="kv"><b>${pct(f.btts)}</b><small>Les deux marquent (Dixon-Coles)</small></div>
     <div class="kv"><b>${nf(f.xg[0],1)} – ${nf(f.xg[1],1)}</b><small>Buts attendus (Dixon-Coles)</small></div>
-    <div class="kv"><b>${f.model.map(x=>pct(x)).join(" · ")}</b><small>Deuxième avis 1 X 2 (Dixon-Coles, moins précis que le marché)</small></div>
+    <div class="kv"><b>${esc(f.score)}</b><small>Score le plus probable (Dixon-Coles)</small></div>
+    ${f.far?"":`<div class="kv"><b>${f.model.map(x=>pct(x)).join(" · ")}</b><small>Deuxième avis 1 X 2 (Dixon-Coles, moins précis que le marché)</small></div>`}
   </div>
-  ${f.signal?`<p class="warnbox">Signal Dixon-Coles : ${esc(f.signal.label)} à ${nf(f.signal.odds)}, écart de ${sgn(f.signal.edge)}. Sur l'historique, cette règle a donné ${sgn(DCR.roi)} sur ${DCR.n.toLocaleString("fr-FR")} paris (fourchette ${sgn(DCR.lo)} à ${sgn(DCR.hi)}). Ce n'est pas prouvé.</p>`:f.thin?'<p class="note">Trop peu de matchs joués par une équipe pour un signal Dixon-Coles.</p>':""}
-  ${big(f)?`<p class="note">Gros favori : ${BIG.all.wins} gagnés sur ${BIG.all.n} sur l'historique, soit ${sgn(BIG.all.roi)} de rendement (fourchette ${sgn(BIG.all.lo)} à ${sgn(BIG.all.hi)}). Ce n'est pas prouvé.</p>`:""}`}
+  ${f.signal?`<p class="warnbox">Signal Dixon-Coles : ${esc(f.signal.label)} à ${nf(f.signal.odds)}, écart de ${sgn(f.signal.edge)}. ${f.top?`Sur l'historique, cette règle a donné ${sgn(DCR.roi)} sur ${DCR.n.toLocaleString("fr-FR")} paris (fourchette ${sgn(DCR.lo)} à ${sgn(DCR.hi)}). Ce n'est pas prouvé.`:"Cette règle n'a pas été testée sur ce championnat."}</p>`:f.thin?'<p class="note">Trop peu de matchs joués par une équipe : probabilités Dixon-Coles fragiles, pas de signal.</p>':""}
+  ${big(f)&&f.top?`<p class="note">Gros favori : ${BIG.all.wins} gagnés sur ${BIG.all.n} sur l'historique, soit ${sgn(BIG.all.roi)} de rendement (fourchette ${sgn(BIG.all.lo)} à ${sgn(BIG.all.hi)}). Ce n'est pas prouvé.</p>`:""}`}
+function dayChip(d,i){const t=parseD(d),now=new Date();now.setHours(0,0,0,0);const n=Math.round((t-now)/864e5);
+  return n===0?"Aujourd'hui":n===1?"Demain":t.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}
 function renderMatches(){
-  const days=[...new Set(D.fixtures.map(f=>f.date))],lgs=[...new Set(D.fixtures.map(f=>f.lg))];
-  chips($("f-league"),[["all","Tous"],...lgs.map(l=>[l,LG[l]])],S.league,v=>{S.league=v;renderMatches()});
-  chips($("f-day"),[["all","Tous les jours"],...days.map(d=>[d,dayLabel(d)]),["big","Gros favoris"],["sig","Signal Dixon-Coles"]],S.day,v=>{S.day=v;renderMatches()});
-  const L=D.fixtures.filter(f=>(S.league==="all"||f.lg===S.league)&&(S.day==="all"||(S.day==="big"?big(f):S.day==="sig"?!!f.signal:f.date===S.day)));
-  let h="",cur="";
-  for(const f of L){if(f.date!==cur){cur=f.date;h+=`<div class="day">${esc(dayLabel(cur))}</div>`}
-    const open=S.open.has(f.key);
-    h+=`<article class="match"><button class="mhead" type="button" data-open="${f.key}" aria-expanded="${open}">
-      <div class="mline"><span class="teams">${esc(f.home)} – ${esc(f.away)}</span><span class="chips">${big(f)?'<span class="tag">Gros favori</span>':""}${f.signal?'<span class="tag">Signal Dixon-Coles</span>':""}</span></div>
-      <div class="meta">${esc(new Date(f.ko).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}))} · ${esc(f.league)}</div>
-      <div class="pick">Pronostic : <b>${esc(pickLabel(f))}</b> · ${pct(Math.max(...f.market))} · cote ${nf(f.odds[f.market.indexOf(Math.max(...f.market))])}</div>${barHTML(f.market)}</button>
-      ${open?`<div class="detail">${detailHTML(f)}</div>`:""}</article>`}
-  $("m-list").innerHTML=h||'<p class="lead">Aucun match pour ce filtre.</p>';
+  const days=[...new Set(D.fixtures.map(f=>f.date))].sort((a,b)=>parseD(a)-parseD(b));
+  if(!days.includes(S.day))S.day=days[0]||"";
+  const onDay=f=>f.date===S.day,kindOk=f=>S.kind==="all"||(S.kind==="big"?big(f):S.kind==="sig"?!!f.signal:f.far);
+  const lgs=[...new Set(D.fixtures.map(f=>f.lg))].sort((a,b)=>{const x=D.fixtures.find(f=>f.lg===a),y=D.fixtures.find(f=>f.lg===b);return (y.top-x.top)||LG[a].localeCompare(LG[b],"fr")});
+  const count=l=>D.fixtures.filter(f=>f.lg===l&&onDay(f)&&kindOk(f)).length;
+  chips($("f-day"),days.map(d=>[d,dayChip(d)]),S.day,v=>{S.day=v;renderMatches()});
+  chips($("f-league"),[["all","Tous les championnats"],...lgs.filter(l=>l===S.league||count(l)>0).map(l=>[l,LG[l]])],S.league,v=>{S.league=v;renderMatches()});
+  chips($("f-kind"),[["all","Tous"],["big","Gros favoris"],["sig","Signaux Dixon-Coles"],["far","Prévisions"]],S.kind,v=>{S.kind=v;renderMatches()});
+  $("f-league").querySelectorAll(".chip").forEach(b=>{const v=b.dataset.v,n=v==="all"?D.fixtures.filter(f=>onDay(f)&&kindOk(f)).length:count(v);b.insertAdjacentHTML("beforeend",`<small>${n}</small>`)});
+  const L=D.fixtures.filter(f=>onDay(f)&&kindOk(f)&&(S.league==="all"||f.lg===S.league));
+  const order=[...lgs],G=new Map();L.sort((a,b)=>order.indexOf(a.lg)-order.indexOf(b.lg)||a.ko.localeCompare(b.ko)).forEach(f=>{if(!G.has(f.lg))G.set(f.lg,[]);G.get(f.lg).push(f)});
+  let h="";
+  for(const[lg,ms]of G){h+=`<div class="group"><span>${esc(LG[lg])}</span><small>${ms.length}</small></div>`;
+    for(const f of ms){const open=S.open.has(f.key),m=Math.max(...f.market),i=f.market.indexOf(m);
+      h+=`<article class="match"><button class="mhead" type="button" data-open="${f.key}" aria-expanded="${open}">
+        <span class="time">${f.far?"Prév.":esc(new Date(f.ko).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}))}</span>
+        <span class="teams"><span>${esc(f.home)}</span><span>${esc(f.away)}</span><span class="bar" aria-hidden="true">${[["s1",0],["sx",1],["s2",2]].map(([c,k])=>`<i class="${c}" style="width:${f.market[k]*100}%"></i>`).join("")}</span></span>
+        ${f.far?"":`<span class="odds">${f.odds.map((o,k)=>`<span class="${k===i?"best":""}">${nf(o)}</span>`).join("")}</span>`}
+        <span class="pred"><b>${esc(pickLabel(f))}</b><small>${pct(m)}${f.far?"":` · ${nf(f.odds[i])}`}</small><span class="tags">${big(f)?'<span class="tag">Favori</span>':""}${f.signal?'<span class="tag">Signal</span>':""}</span></span></button>
+        ${open?`<div class="detail">${detailHTML(f)}</div>`:""}</article>`}}
+  $("m-list").innerHTML=h||'<p class="lead" style="padding:12px">Aucun match pour ce filtre.</p>';
 }
 $("m-list").addEventListener("click",e=>{
   const o=e.target.closest("[data-open]"),a=e.target.closest("[data-add]");
@@ -124,7 +136,9 @@ function renderProof(){
    <text x="${(M.l+W-M.r)/2}" y="${H-2}" text-anchor="middle">Probabilité annoncée (%)</text></svg>`;
   $("p-calib-table").innerHTML=`<table><thead><tr><th>Tranche</th><th>Annoncé</th><th>Observé</th><th>Issues</th></tr></thead><tbody>${D.calib.map(c=>`<tr><td>${c.lo*100} à ${c.hi*100} %</td><td>${pct(c.pred,1)}</td><td>${pct(c.obs,1)}</td><td>${c.n}</td></tr>`).join("")}</tbody></table>`;
   $("p-method").innerHTML=[
-   "Les probabilités affichées viennent des cotes moyennes de plusieurs bookmakers, une fois leur marge retirée proportionnellement.",
+   "Les probabilités affichées viennent des cotes moyennes de plusieurs bookmakers, une fois leur marge retirée proportionnellement. Les prévisions lointaines, sans cote, viennent de Dixon-Coles seul et ne sont pas enregistrées dans nos résultats.",
+   "Les tests historiques ci-dessus portent sur les cinq grands championnats européens. Les autres championnats affichés n'ont pas été testés.",
+   "Les coupes d'Europe et les championnats africains ne figurent pas ici : aucune source gratuite ne fournit à la fois leurs cotes et leur historique.",
    "Le deuxième avis vient de notre modèle Dixon-Coles domicile/extérieur, réajusté à chaque mise à jour. Ses signaux suivent une règle fixe : écart de 5 à 20 %, au moins 10 matchs joués par équipe.",
    `Le test de Dixon-Coles a réajusté le modèle chaque semaine, ${D.dc.fits} fois, sur les seuls matchs déjà joués, et garde le meilleur pari par match. Il date du 6 novembre 2026 et n'est pas refait à chaque mise à jour.`,
    `Le poids de Dixon-Coles est choisi sur les saisons ${D.first_label} et ${D.mid_label}, avant le test sur ${D.test_label}. La saison ${D.first_label} sert surtout de préparation.`,
@@ -186,7 +200,8 @@ addEventListener("hashchange",route);
 
 const days=[...new Set(D.fixtures.map(f=>f.date))];
 const fd=new Date(D.fetched);const fetched=isNaN(fd)?"dernier relevé":fd.toLocaleString("fr-FR",{day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit",timeZone:"UTC"})+" GMT";
-$("m-lead").textContent=D.fixtures.length?`${D.fixtures.length} matchs des cinq grands championnats européens, ${D.fixtures.filter(big).length} gros favoris. Probabilités tirées des cotes moyennes relevées le ${fetched}, marge retirée. Touchez un match pour vérifier votre cote.`:`Aucun match à venir dans les données relevées le ${fetched}. Les prochains apparaîtront à la mise à jour suivante.`;
+const nb=D.fixtures.filter(f=>!f.far).length,nf2=D.fixtures.filter(f=>f.far).length,nl=new Set(D.fixtures.map(f=>f.lg)).size;
+$("m-lead").textContent=D.fixtures.length?`${nb} matchs avec cotes et ${nf2} prévisions sur ${nl} championnats. Cotes relevées le ${fetched}. Touchez un match pour le détail.`:`Aucun match à venir dans les données relevées le ${fetched}.`;
 const lastD=days.length?parseD(days[days.length-1]):null;const today=new Date();today.setHours(0,0,0,0);
 if(lastD&&today>lastD){$("m-stale").hidden=false;$("m-stale").textContent="Ces matchs sont passés. De nouveaux matchs arriveront dès que la source les publiera."}
 seedTicket();renderMatches();renderResults();renderTicket();renderProof();route();bootJournal();

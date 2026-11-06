@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>kcbet</title>
 <meta name="description" content="Pronostics de football et résultats publiés, sans retouche.">
-<meta name="theme-color" content="#0B5F6B">
+<meta name="theme-color" content="#121F2A">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-512.png">
@@ -30,13 +30,21 @@
 
   <section data-view="matchs">
     <div>
-      <h1>Pronostics du moment</h1>
+      <h1>Pronostics du jour</h1>
       <p class="lead" id="m-lead"></p>
     </div>
     <div id="m-stale" class="warnbox" hidden></div>
-    <div class="chips" id="f-league" role="group" aria-label="Championnat"></div>
-    <div class="chips" id="f-day" role="group" aria-label="Jour"></div>
-    <div class="list" id="m-list"></div>
+    <div class="chips strip" id="f-day" role="group" aria-label="Jour"></div>
+    <div class="split">
+      <aside class="side">
+        <h2>Compétitions</h2>
+        <div class="chips" id="f-league" role="group" aria-label="Compétition"></div>
+      </aside>
+      <div class="mainc">
+        <div class="chips" id="f-kind" role="group" aria-label="Type de match"></div>
+        <div class="list" id="m-list"></div>
+      </div>
+    </div>
   </section>
 
   <section data-view="resultats" hidden>

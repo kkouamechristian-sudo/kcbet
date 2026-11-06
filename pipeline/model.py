@@ -289,57 +289,94 @@ def main():
             bins[q][2] += p[k]
     calib = [dict(lo=q / 10, hi=(q + 1) / 10 if q < 8 else 1.0, n=v[0], pred=v[2] / v[0], obs=v[1] / v[0]) for q, v in sorted(bins.items())]
     print(calib)
-    # matchs a venir
+    # matchs a venir, tous championnats
     fx = []
-    teams_known = {lg: {t for m in hist[lg] for t in (m["home"], m["away"])} for lg in LEAGUES}
     now = max(m["d"] for m in ms)
-    states = {lg: fit(hist[lg][-1000:], now) for lg in LEAGUES}
     sys.path.insert(0, DC_PATH)
+    import warnings
+    warnings.filterwarnings("ignore")
     import pandas as pd
+    from datetime import timedelta
     from dixon_coles_ha import DixonColesHA
+    import leagues as L
+    today = datetime.now().date()
+    wanted = set()
+    rows = []
+    for r in read(os.path.join(DATA, "fixtures.csv")):
+        if r.get("Div") in L.MAIN and r.get("HomeTeam"):
+            rows.append(dict(lg=r["Div"], Date=r["Date"], Time=r["Time"], home=r["HomeTeam"], away=r["AwayTeam"], o=odds_triplet(r, "Avg", "B365"),
+                             mx=odds_triplet(r, "Max"), ao=num(r.get("Avg>2.5")), au=num(r.get("Avg<2.5"))))
+    src = {(v[0], v[1]): k for k, v in L.NEW.items()}
+    nlf = os.path.join(DATA, "new_league_fixtures.csv")
+    if os.path.exists(nlf):
+        for r in read(nlf):
+            c = src.get((r.get("Country"), r.get("League")))
+            if c and r.get("Home"):
+                rows.append(dict(lg=c, Date=r["Date"], Time=r["Time"], home=r["Home"], away=r["Away"], o=odds_triplet(r, "Avg", "B365"), mx=odds_triplet(r, "Max"), ao=None, au=None))
+    rows = [r for r in rows if r["o"] and date(r["Date"]) and date(r["Date"]).date() >= today]
+    with open(os.path.join(DC_PATH, "noms.json"), encoding="utf-8") as f:
+        noms = json.load(f)
+    far = []
+    limit = today + timedelta(days=21)
+    for lg in L.CALENDARS:
+        for m in L.calendar_rows(DATA, lg):
+            if m.get("score") or not m.get("date"):
+                continue
+            d = datetime.strptime(m["date"], "%Y-%m-%d")
+            h, a = noms.get(lg, {}).get(m.get("team1")), noms.get(lg, {}).get(m.get("team2"))
+            if today <= d.date() <= limit and h and a:
+                far.append(dict(lg=lg, Date=d.strftime("%d/%m/%Y"), Time=m.get("time") or "12:00", home=h, away=a))
+    done = {(r["lg"], r["home"], r["away"]) for r in rows}
+    far = [r for r in far if (r["lg"], r["home"], r["away"]) not in done]
     dcm, seen = {}, {}
-    for lg in LEAGUES:
-        H = hist[lg][-1000:]
+    for lg in sorted({r["lg"] for r in rows + far}):
+        H = hist[lg][-1000:] if lg in L.TOP5 else L.history(DATA, lg, SEASONS)
+        if len(H) < 100:
+            print("historique trop court", lg, len(H))
+            continue
         dcm[lg] = DixonColesHA()
         dcm[lg].fit(pd.DataFrame([dict(date=x["d"], home_team=x["home"], away_team=x["away"], home_goals=x["hg"], away_goals=x["ag"]) for x in H]))
         seen[lg] = defaultdict(int)
         for x in H:
             seen[lg][x["home"]] += 1
             seen[lg][x["away"]] += 1
-    for r in read(os.path.join(DATA, "fixtures.csv")):
-        lg = r.get("Div")
-        if lg not in LEAGUES or not r.get("HomeTeam"):
+
+    def prob(r):
+        mod = dcm.get(r["lg"])
+        if not mod or r["home"] not in mod.team_to_idx or r["away"] not in mod.team_to_idx:
+            print("match ignore", r["lg"], r["home"], r["away"])
+            return None
+        q = mod.predict(r["home"], r["away"])
+        return dict(pk=[float(q["1"]), float(q["X"]), float(q["2"])], lh=float(q["lambda_home"]), la=float(q["mu_away"]), o25=float(q["Over 2.5"]), btts=float(q["BTTS Oui"]),
+                    score=f"{q['top_scores'][0][0]}-{q['top_scores'][0][1]}")
+
+    for r in rows:
+        p = prob(r)
+        if not p:
             continue
-        fd = date(r.get("Date", ""))
-        if fd is None or fd.date() < datetime.now().date():
-            continue
-        o = odds_triplet(r, "Avg", "B365")
-        if not o:
-            continue
-        if r["HomeTeam"] not in teams_known[lg] or r["AwayTeam"] not in teams_known[lg]:
-            print("nom inconnu", lg, r["HomeTeam"], r["AwayTeam"])
-        if r["HomeTeam"] not in dcm[lg].team_to_idx or r["AwayTeam"] not in dcm[lg].team_to_idx:
-            continue
-        q = dcm[lg].predict(r["HomeTeam"], r["AwayTeam"])
-        p = dict(lh=float(q["lambda_home"]), la=float(q["mu_away"]), o25=float(q["Over 2.5"]), btts=float(q["BTTS Oui"]),
-                 score=f"{q['top_scores'][0][0]}-{q['top_scores'][0][1]}")
-        pm = devig(o)
-        pk = [float(q["1"]), float(q["X"]), float(q["2"])]
-        pb = pm
+        lg, o, pk = r["lg"], r["o"], p["pk"]
         cand = [(pk[i] * o[i] - 1, ["1", "X", "2"][i], pk[i], o[i]) for i in range(3)]
-        ao, au = num(r.get("Avg>2.5")), num(r.get("Avg<2.5"))
-        if ao and au:
-            cand += [(p["o25"] * ao - 1, "Plus de 2,5 buts", p["o25"], ao), ((1 - p["o25"]) * au - 1, "Moins de 2,5 buts", 1 - p["o25"], au)]
+        if r["ao"] and r["au"]:
+            cand += [(p["o25"] * r["ao"] - 1, "Plus de 2,5 buts", p["o25"], r["ao"]), ((1 - p["o25"]) * r["au"] - 1, "Moins de 2,5 buts", 1 - p["o25"], r["au"])]
         cand = [c for c in cand if .05 <= c[0] <= .20]
-        thin = min(seen[lg][r["HomeTeam"]], seen[lg][r["AwayTeam"]]) < 10
+        thin = min(seen[lg][r["home"]], seen[lg][r["away"]]) < 10
         sig = None
         if cand and not thin:
             e, lab_, pp, oo = max(cand)
             sig = dict(edge=e, label=lab_, p=pp, odds=oo)
-        fx.append(dict(lg=lg, league=LEAGUES[lg], date=r["Date"], time=r["Time"], home=r["HomeTeam"], away=r["AwayTeam"],
-                       odds=o, max=odds_triplet(r, "Max") or o, market=pm, model=pk, blend=pb,
-                       xg=[p["lh"], p["la"]], o25=p["o25"], btts=p["btts"], score=p["score"], signal=sig, thin=thin,
-                       ao25=num(r.get("Avg>2.5")), au25=num(r.get("Avg<2.5"))))
+        pays, nom = L.info(lg)
+        fx.append(dict(lg=lg, league=nom, country=pays, top=lg in L.TOP5, far=False, date=r["Date"], time=r["Time"], home=r["home"], away=r["away"],
+                       odds=o, max=r["mx"] or o, market=devig(o), model=pk, xg=[p["lh"], p["la"]], o25=p["o25"], btts=p["btts"], score=p["score"],
+                       signal=sig, thin=thin, ao25=r["ao"], au25=r["au"]))
+    for r in far:
+        p = prob(r)
+        if not p:
+            continue
+        lg = r["lg"]
+        pays, nom = L.info(lg)
+        fx.append(dict(lg=lg, league=nom, country=pays, top=lg in L.TOP5, far=True, date=r["Date"], time=r["Time"], home=r["home"], away=r["away"],
+                       odds=None, max=None, market=p["pk"], model=p["pk"], xg=[p["lh"], p["la"]], o25=p["o25"], btts=p["btts"], score=p["score"],
+                       signal=None, thin=min(seen[lg][r["home"]], seen[lg][r["away"]]) < 10, ao25=None, au25=None))
     fx.sort(key=lambda f: (date(f["date"]), f["time"]))
     lab = lambda z: f"20{z[:2]}-{z[2:]}"
     with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "dc_test.json"), encoding="utf-8") as f:

@@ -3,9 +3,12 @@ Le registre fige chaque pronostic avant le coup d'envoi ; il n'est jamais modifi
 Derniere ligne : STATUS=UNCHANGED ou STATUS=UPDATED. Toute erreur s'arrete sans ecraser les donnees en ligne.
 Usage : python pipeline/update.py [--force]
 """
-import csv, email.utils, json, os, re, shutil, subprocess, sys, tempfile, urllib.request
+import email.utils, glob, json, os, re, shutil, subprocess, sys, tempfile, urllib.error, urllib.request
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import leagues as L
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SITE_DATA = os.path.join(os.path.dirname(HERE), "site", "data")
@@ -13,7 +16,7 @@ STATE = os.path.join(SITE_DATA, "etat.json")
 REG = os.path.join(SITE_DATA, "registre.json")
 APP = os.path.join(SITE_DATA, "app.json")
 BASE = "https://www.football-data.co.uk/"
-LEAGUES = ["E0", "SP1", "D1", "I1", "F1"]
+CAL = "https://raw.githubusercontent.com/openfootball/football.json/master"
 UA = {"User-Agent": "Mozilla/5.0"}
 LONDON = ZoneInfo("Europe/London")
 
@@ -24,7 +27,7 @@ def get(url, dest=None):
         lm = r.headers.get("Last-Modified", "")
         if dest:
             body = r.read()
-            if not body.lstrip(b"\xef\xbb\xbf").startswith(b"Div,"):
+            if not body.lstrip(b"\xef\xbb\xbf").startswith((b"Div,", b"Country,")):
                 raise ValueError("contenu inattendu : " + url)
             with open(dest, "wb") as f:
                 f.write(body)
@@ -35,18 +38,26 @@ def code(y):
     return f"{y % 100:02d}{(y + 1) % 100:02d}"
 
 
+def fetch_json(url, dest):
+    with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=40) as r:
+        body = r.read()
+    json.loads(body)
+    with open(dest, "wb") as f:
+        f.write(body)
+
+
 def marks_for(start):
-    urls = [BASE + "fixtures.csv"] + [BASE + f"mmz4281/{code(start)}/{l}.csv" for l in LEAGUES]
-    return {u: get(u) for u in urls}
-
-
-def pdate(s):
-    for f in ("%d/%m/%Y", "%d/%m/%y"):
+    urls = [BASE + "fixtures.csv", BASE + "new_league_fixtures.csv"] + [BASE + f"mmz4281/{code(start)}/{l}.csv" for l in L.TOP5]
+    marks = {u: get(u) for u in urls}
+    for u in [BASE + f"mmz4281/{code(start)}/{l}.csv" for l in L.MAIN if l not in L.TOP5] + [BASE + f"new/{c}.csv" for c in L.NEW]:
         try:
-            return datetime.strptime(s, f)
-        except ValueError:
-            pass
-    return None
+            marks[u] = get(u)
+        except urllib.error.URLError:
+            marks[u] = "absent"
+    return marks
+
+
+pdate = L.pdate
 
 
 def rnd(o):
@@ -86,10 +97,10 @@ def register(reg, fixtures, now):
         ko = d.replace(hour=int(hh), minute=int(mm), tzinfo=LONDON).astimezone(timezone.utc)
         f["id"] = mid(f)
         f["ko"] = ko.isoformat()
-        if f["id"] in known or ko <= now:
+        if f["far"] or f["id"] in known or ko <= now:
             continue
         i = max(range(3), key=lambda k: f["market"][k])
-        reg.append(dict(id=f["id"], lg=f["lg"], league=f["league"], date=f["date"], ko=f["ko"], home=f["home"], away=f["away"],
+        reg.append(dict(id=f["id"], lg=f["lg"], league=f["league"], country=f["country"], date=f["date"], ko=f["ko"], home=f["home"], away=f["away"],
                         created=now.isoformat(), big=f["market"][i] >= .73,
                         pick=dict(i=i, label=[f["home"], "Nul", f["away"]][i], p=f["market"][i], odds=f["odds"][i]),
                         signal=f["signal"], dc=f["model"], result=None, void=False))
@@ -97,15 +108,19 @@ def register(reg, fixtures, now):
     return added
 
 
-def settle(reg, data, seasons, now):
+def settle(reg, data, now):
     rows = {}
-    for se in seasons:
-        for lg in LEAGUES:
-            with open(os.path.join(data, f"{se}_{lg}.csv"), encoding="utf-8-sig", errors="replace", newline="") as f:
-                for r in csv.DictReader(f):
-                    d = pdate(r.get("Date", ""))
-                    if d and r.get("FTHG") not in ("", None) and r.get("HomeTeam"):
-                        rows[(lg, d.date(), r["HomeTeam"], r["AwayTeam"])] = (int(float(r["FTHG"])), int(float(r["FTAG"])))
+    for path in glob.glob(os.path.join(data, "*.csv")):
+        name = os.path.basename(path)[:-4]
+        if "_" not in name or name.startswith(("fixtures", "new_league")):
+            continue
+        lg = name.split("_", 1)[1]
+        for r in L.rows_of(path):
+            d = pdate(r.get("Date", ""))
+            h, a = r.get("HomeTeam") or r.get("Home"), r.get("AwayTeam") or r.get("Away")
+            g1, g2 = r.get("FTHG", r.get("HG")), r.get("FTAG", r.get("AG"))
+            if d and h and a and g1 not in ("", None) and g2 not in ("", None):
+                rows[(lg, d.date(), h, a)] = (int(float(g1)), int(float(g2)))
     n = 0
     for x in reg:
         if x["result"] or x["void"]:
@@ -158,22 +173,38 @@ def main():
     try:
         seasons = [code(start - 2), code(start - 1), code(start)]
         fetched = get(BASE + "fixtures.csv", os.path.join(tmp, "fixtures.csv"))
+        get(BASE + "new_league_fixtures.csv", os.path.join(tmp, "new_league_fixtures.csv"))
         for s in seasons:
-            for l in LEAGUES:
-                get(BASE + f"mmz4281/{s}/{l}.csv", os.path.join(tmp, f"{s}_{l}.csv"))
+            for l in L.MAIN:
+                try:
+                    get(BASE + f"mmz4281/{s}/{l}.csv", os.path.join(tmp, f"{s}_{l}.csv"))
+                except (urllib.error.URLError, ValueError):
+                    if l in L.TOP5:
+                        raise
+        for c in L.NEW:
+            try:
+                get(BASE + f"new/{c}.csv", os.path.join(tmp, f"NEW_{c}.csv"))
+            except (urllib.error.URLError, ValueError):
+                print("indisponible", c)
+        for lg, (annee, nom) in L.CALENDARS.items():
+            dossier = str(now.year) if annee else f"{start}-{(start + 1) % 100:02d}"
+            try:
+                fetch_json(f"{CAL}/{dossier}/{nom}.json", os.path.join(tmp, f"CAL_{lg}.json"))
+            except (urllib.error.URLError, ValueError):
+                print("calendrier indisponible", lg)
         iso = email.utils.parsedate_to_datetime(fetched).isoformat() if fetched else now.isoformat()
         out = os.path.join(tmp, "model.json")
         subprocess.run([sys.executable, os.path.join(HERE, "model.py"), tmp, out, iso, ",".join(seasons)],
-                       check=True, timeout=900, stdout=subprocess.DEVNULL)
+                       check=True, timeout=1500)
         with open(out, encoding="utf-8") as f:
             d = json.load(f)
         if d["n_pred"] < 2000 or d["metrics"]["test"]["n"] < 1:
             raise RuntimeError("donnees insuffisantes, mise a jour annulee")
         reg = load_json(REG, [])
         added = register(reg, d["fixtures"], now)
-        settled = settle(reg, tmp, seasons, now)
+        settled = settle(reg, tmp, now)
         d["generated"] = now.isoformat()
-        d["registre"] = sorted(reg, key=lambda x: x["ko"], reverse=True)[:400]
+        d["registre"] = sorted(reg, key=lambda x: x["ko"], reverse=True)[:600]
         d["suivi"] = stats(reg)
         os.makedirs(SITE_DATA, exist_ok=True)
         save_json(REG, rnd(reg))

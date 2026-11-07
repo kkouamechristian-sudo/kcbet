@@ -136,7 +136,7 @@
 
 <script>
 fetch("data/app.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
-  window.KC=d;["markets.js","app.js","live.js"].forEach(function(u){var s=document.createElement("script");s.src=u;s.async=false;document.body.appendChild(s)});
+  window.KC=d;["markets.js","app.js","live.js"].forEach(function(u){var s=document.createElement("script");s.src=u+"?v="+encodeURIComponent(d.generated);s.async=false;document.body.appendChild(s)});
 }).catch(function(){var h=document.querySelector("h1");if(h)h.textContent="Données indisponibles pour le moment. Réessayez dans un instant."});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(function(){});
 </script>

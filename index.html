@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>kcbet</title>
+<meta name="description" content="Pronostics de football et résultats publiés, sans retouche.">
+<meta name="theme-color" content="#121F2A">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-512.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>html,body{margin:0}</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><b>kcbet</b><span>Pronostics de football, résultats publiés</span></div>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#matchs" data-nav="matchs">Matchs</a>
+      <a href="#direct" data-nav="direct">Direct</a>
+      <a href="#resultats" data-nav="resultats">Résultats</a>
+      <a href="#ticket" data-nav="ticket">Ticket</a>
+      <a href="#preuves" data-nav="preuves">Preuves</a>
+      <a href="#journal" data-nav="journal">Journal</a>
+    </nav>
+  </header>
+
+  <section data-view="matchs">
+    <div>
+      <h1>Pronostics du jour</h1>
+      <p class="lead" id="m-lead"></p>
+    </div>
+    <div id="m-stale" class="warnbox" hidden></div>
+    <div class="chips strip" id="f-day" role="group" aria-label="Jour"></div>
+    <div class="split">
+      <aside class="side">
+        <h2>Compétitions</h2>
+        <div class="chips" id="f-league" role="group" aria-label="Compétition"></div>
+      </aside>
+      <div class="mainc">
+        <div class="chips" id="f-kind" role="group" aria-label="Type de match"></div>
+        <div class="list" id="m-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <section data-view="direct" hidden>
+    <div>
+      <h1>En direct</h1>
+      <p class="lead" id="l-status" role="status"></p>
+    </div>
+    <div class="chips" id="l-kind" role="group" aria-label="État des matchs"></div>
+    <div class="list" id="l-list"></div>
+  </section>
+
+  <section data-view="resultats" hidden>
+    <div>
+      <h1>Tous nos pronostics, gagnés ou perdus</h1>
+      <p class="lead" id="r-lead"></p>
+    </div>
+    <div class="figures" id="r-figs"></div>
+    <div class="card" id="r-list"></div>
+  </section>
+
+  <section data-view="ticket" hidden>
+    <div>
+      <h1>Votre combiné, sans maquillage</h1>
+      <p class="lead">Chaque sélection ajoutée multiplie la cote, mais aussi la marge du bookmaker. Remplacez les cotes par celles de votre bookmaker.</p>
+    </div>
+    <div id="t-example" class="note" hidden></div>
+    <div class="card" id="t-legs"></div>
+    <div class="figures" id="t-figs"></div>
+    <div class="card">
+      <div class="formgrid">
+        <label class="field">Mise du ticket (FCFA)<input id="t-stake" type="number" min="0" step="any" inputmode="decimal" value="1000"></label>
+        <button class="act" id="t-log" type="button">Noter dans le journal</button>
+      </div>
+      <p class="verdict" id="t-msg" role="status"></p>
+    </div>
+  </section>
+
+  <section data-view="preuves" hidden>
+    <div>
+      <h1 id="p-title">Sur le passé, personne ne bat le marché ici</h1>
+      <p class="lead" id="p-lead"></p>
+    </div>
+    <div class="figures" id="p-figs"></div>
+    <div class="card">
+      <div>
+        <h2>Gain ou perte par stratégie</h2>
+        <p class="lead">Mise fixe à chaque pari. Le point donne le résultat moyen, le trait la fourchette à 90 %. Une stratégie n'est prouvée que si tout le trait est à droite de zéro.</p>
+      </div>
+      <div class="chips" id="f-period" role="group" aria-label="Période"></div>
+      <div id="p-ranges"></div>
+    </div>
+    <div class="card">
+      <div>
+        <h2>Les probabilités tiennent-elles parole ?</h2>
+        <p class="lead">Chaque point compare la probabilité annoncée à la fréquence observée. Sur la diagonale, l'annonce est exacte. Au-dessus, l'issue arrive plus souvent qu'annoncé.</p>
+      </div>
+      <div id="p-calib"></div>
+      <details><summary>Voir le tableau</summary><div class="scroll" id="p-calib-table"></div></details>
+    </div>
+    <div class="card">
+      <h2>Méthode et limites</h2>
+      <ul class="plain" id="p-method"></ul>
+    </div>
+  </section>
+
+  <section data-view="journal" hidden>
+    <div>
+      <h1>Vos paris, comptés honnêtement</h1>
+      <p class="lead">Notez chaque pari avant le match. Votre journal reste dans ce navigateur, personne d'autre ne le voit.</p>
+    </div>
+    <div class="figures" id="j-figs"></div>
+    <form class="card" id="j-form">
+      <h2>Nouveau pari</h2>
+      <div class="formgrid">
+        <label class="field">Match ou ticket<input id="j-label" required maxlength="120" style="font-family:var(--body)"></label>
+        <label class="field">Cote prise<input id="j-odds" type="number" min="1.01" step="0.01" inputmode="decimal" required></label>
+        <label class="field">Mise (FCFA)<input id="j-stake" type="number" min="0.01" step="any" inputmode="decimal" required></label>
+        <label class="field">Probabilité (%), si connue<input id="j-prob" type="number" min="0.1" max="99.9" step="0.1" inputmode="decimal"></label>
+        <button class="act" type="submit">Ajouter</button>
+      </div>
+      <p class="verdict" id="j-msg" role="status"></p>
+    </form>
+    <div class="card" id="j-list"></div>
+  </section>
+
+  <footer>Réservé aux adultes. Le pari sportif peut faire perdre de l'argent et créer une dépendance : ne misez que ce que vous pouvez perdre, et ne cherchez jamais à vous refaire. kcbet publie des probabilités et ne garantit aucun gain. Données : football-data.co.uk, openfootball. Scores en direct : ESPN, sans garantie.</footer>
+</div>
+
+<script>
+fetch("data/app.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
+  window.KC=d;["markets.js","app.js","live.js"].forEach(function(u){var s=document.createElement("script");s.src=u+"?v="+encodeURIComponent(d.generated);s.async=false;document.body.appendChild(s)});
+}).catch(function(){var h=document.querySelector("h1");if(h)h.textContent="Données indisponibles pour le moment. Réessayez dans un instant."});
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(function(){});
+</script>
+</body>
+</html>

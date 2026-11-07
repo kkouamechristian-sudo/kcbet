@@ -25,8 +25,8 @@ function leagueName(ev){return ev.lg?(LG[ev.lg]||(typeof D!=="undefined"&&ev.lg)
 function renderLive(){
   const all=[...V.events.values()],sets={in:all.filter(e=>e.state==="in"),pre:all.filter(e=>e.state==="pre"),post:all.filter(e=>e.state==="post")};
   const b=document.querySelector('[data-nav="direct"]');if(b)b.textContent=sets.in.length?`Direct (${sets.in.length})`:"Direct";
-  if(!V.tab)V.tab=sets.in.length?"in":"pre";
-  chips($("l-kind"),[["in",`En direct ${sets.in.length}`],["pre",`À venir ${sets.pre.length}`],["post",`Terminés ${sets.post.length}`]],V.tab,v=>{V.tab=v;renderLive()});
+  if(!V.chosen)V.tab=sets.in.length?"in":"pre";
+  chips($("l-kind"),[["in",`En direct ${sets.in.length}`],["pre",`À venir ${sets.pre.length}`],["post",`Terminés ${sets.post.length}`]],V.tab,v=>{V.tab=v;V.chosen=true;renderLive()});
   $("l-status").textContent=V.err&&!all.length?"Scores en direct indisponibles pour le moment. La page réessaie toute seule.":V.at?`Mis à jour à ${new Date(V.at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}. Actualisation automatique.`:"Chargement des scores…";
   const L=sets[V.tab].sort((a,b)=>String(leagueName(a)).localeCompare(String(leagueName(b)),"fr")||a.date.localeCompare(b.date)),G=new Map();L.forEach(e=>{const k=leagueName(e);if(!G.has(k))G.set(k,[]);G.get(k).push(e)});
   let h="";

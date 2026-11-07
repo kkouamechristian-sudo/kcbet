@@ -75,7 +75,9 @@ def history(data, code, seasons):
             if d is None or not h or not a or g1 in ("", None) or g2 in ("", None):
                 continue
             try:
-                out.append(dict(d=d, home=h, away=a, hg=int(float(g1)), ag=int(float(g2))))
+                out.append(dict(d=d, home=h, away=a, hg=int(float(g1)), ag=int(float(g2)),
+                                corners=sum(float(r.get(k) or 0) for k in ("HC", "AC")) if r.get("HC") not in ("", None) else None,
+                                cards=sum(float(r.get(k) or 0) for k in ("HY", "AY", "HR", "AR")) if r.get("HY") not in ("", None) else None))
             except ValueError:
                 continue
     out.sort(key=lambda m: m["d"])
@@ -88,3 +90,15 @@ def calendar_rows(data, code):
         return []
     with open(p, encoding="utf-8") as f:
         return json.load(f).get("matches", [])
+
+
+def team_rates(rows, n=15):
+    """Moyenne corners et cartons par equipe sur ses n derniers matchs."""
+    c, k = {}, {}
+    for m in rows:
+        for t in (m["home"], m["away"]):
+            if m["corners"] is not None:
+                c.setdefault(t, []).append(m["corners"])
+            if m["cards"] is not None:
+                k.setdefault(t, []).append(m["cards"])
+    return {t: sum(v[-n:]) / len(v[-n:]) for t, v in c.items()}, {t: sum(v[-n:]) / len(v[-n:]) for t, v in k.items()}

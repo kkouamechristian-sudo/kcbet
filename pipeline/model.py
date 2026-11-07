@@ -341,6 +341,44 @@ def main():
             seen[lg][x["home"]] += 1
             seen[lg][x["away"]] += 1
 
+    import numpy as np
+    from scipy.optimize import minimize
+    from scipy.stats import poisson as SP
+
+    def fit_odds(pm, pover, rho, x0):
+        """Buts attendus qui reproduisent au mieux les probabilites du marche."""
+        g = np.arange(11)
+        tot = np.add.outer(g, g)
+
+        def probs(x):
+            lh, la = np.exp(x)
+            M = np.outer(SP.pmf(g, lh), SP.pmf(g, la))
+            M[0, 0] *= 1 - lh * la * rho
+            M[0, 1] *= 1 + lh * rho
+            M[1, 0] *= 1 + la * rho
+            M[1, 1] *= 1 - rho
+            M /= M.sum()
+            return np.tril(M, -1).sum(), np.trace(M), np.triu(M, 1).sum(), M[tot >= 3].sum()
+
+        def loss(x):
+            a, d, b, o = probs(x)
+            e = (a - pm[0]) ** 2 + (d - pm[1]) ** 2 + (b - pm[2]) ** 2
+            return e + ((o - pover) ** 2 if pover else 0)
+
+        res = minimize(loss, np.log(x0), method="Nelder-Mead", options=dict(xatol=1e-3, fatol=1e-7, maxiter=300))
+        return [float(v) for v in np.exp(res.x)]
+
+    rates = {}
+
+    def cc(r):
+        if r["lg"] not in L.MAIN:
+            return None
+        if r["lg"] not in rates:
+            rates[r["lg"]] = L.team_rates(L.history(DATA, r["lg"], SEASONS))
+        c, k = rates[r["lg"]]
+        ch, ca, kh, ka = c.get(r["home"]), c.get(r["away"]), k.get(r["home"]), k.get(r["away"])
+        return [(ch + ca) / 2 if ch and ca else None, (kh + ka) / 2 if kh and ka else None]
+
     def prob(r):
         mod = dcm.get(r["lg"])
         if not mod or r["home"] not in mod.team_to_idx or r["away"] not in mod.team_to_idx:
@@ -365,7 +403,10 @@ def main():
             e, lab_, pp, oo = max(cand)
             sig = dict(edge=e, label=lab_, p=pp, odds=oo)
         pays, nom = L.info(lg)
-        fx.append(dict(lg=lg, league=nom, country=pays, top=lg in L.TOP5, far=False, date=r["Date"], time=r["Time"], home=r["home"], away=r["away"],
+        pm0 = devig(o)
+        pov = (1 / r["ao"]) / (1 / r["ao"] + 1 / r["au"]) if r["ao"] and r["au"] else None
+        rho = float(dcm[lg].rho)
+        fx.append(dict(lam=fit_odds(pm0, pov, rho, [p["lh"], p["la"]]), rho=rho, cc=cc(r), lg=lg, league=nom, country=pays, top=lg in L.TOP5, far=False, date=r["Date"], time=r["Time"], home=r["home"], away=r["away"],
                        odds=o, max=r["mx"] or o, market=devig(o), model=pk, xg=[p["lh"], p["la"]], o25=p["o25"], btts=p["btts"], score=p["score"],
                        signal=sig, thin=thin, ao25=r["ao"], au25=r["au"]))
     for r in far:
@@ -374,7 +415,7 @@ def main():
             continue
         lg = r["lg"]
         pays, nom = L.info(lg)
-        fx.append(dict(lg=lg, league=nom, country=pays, top=lg in L.TOP5, far=True, date=r["Date"], time=r["Time"], home=r["home"], away=r["away"],
+        fx.append(dict(lam=[p["lh"], p["la"]], rho=float(dcm[lg].rho), cc=cc(r), lg=lg, league=nom, country=pays, top=lg in L.TOP5, far=True, date=r["Date"], time=r["Time"], home=r["home"], away=r["away"],
                        odds=None, max=None, market=p["pk"], model=p["pk"], xg=[p["lh"], p["la"]], o25=p["o25"], btts=p["btts"], score=p["score"],
                        signal=None, thin=min(seen[lg][r["home"]], seen[lg][r["away"]]) < 10, ao25=None, au25=None))
     fx.sort(key=lambda f: (date(f["date"]), f["time"]))

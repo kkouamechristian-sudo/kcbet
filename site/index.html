@@ -21,6 +21,7 @@
     <div class="brand"><b>kcbet</b><span>Pronostics de football, résultats publiés</span></div>
     <nav class="tabs" aria-label="Sections">
       <a href="#matchs" data-nav="matchs">Matchs</a>
+      <a href="#direct" data-nav="direct">Direct</a>
       <a href="#resultats" data-nav="resultats">Résultats</a>
       <a href="#ticket" data-nav="ticket">Ticket</a>
       <a href="#preuves" data-nav="preuves">Preuves</a>
@@ -45,6 +46,15 @@
         <div class="list" id="m-list"></div>
       </div>
     </div>
+  </section>
+
+  <section data-view="direct" hidden>
+    <div>
+      <h1>En direct</h1>
+      <p class="lead" id="l-status" role="status"></p>
+    </div>
+    <div class="chips" id="l-kind" role="group" aria-label="État des matchs"></div>
+    <div class="list" id="l-list"></div>
   </section>
 
   <section data-view="resultats" hidden>
@@ -121,12 +131,12 @@
     <div class="card" id="j-list"></div>
   </section>
 
-  <footer>Réservé aux adultes. Le pari sportif peut faire perdre de l'argent et créer une dépendance : ne misez que ce que vous pouvez perdre, et ne cherchez jamais à vous refaire. kcbet publie des probabilités et ne garantit aucun gain. Données : football-data.co.uk.</footer>
+  <footer>Réservé aux adultes. Le pari sportif peut faire perdre de l'argent et créer une dépendance : ne misez que ce que vous pouvez perdre, et ne cherchez jamais à vous refaire. kcbet publie des probabilités et ne garantit aucun gain. Données : football-data.co.uk, openfootball. Scores en direct : ESPN, sans garantie.</footer>
 </div>
 
 <script>
 fetch("data/app.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
-  window.KC=d;var s=document.createElement("script");s.src="app.js";document.body.appendChild(s);
+  window.KC=d;["markets.js","app.js","live.js"].forEach(function(u){var s=document.createElement("script");s.src=u;s.async=false;document.body.appendChild(s)});
 }).catch(function(){var h=document.querySelector("h1");if(h)h.textContent="Données indisponibles pour le moment. Réessayez dans un instant."});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(function(){});
 </script>

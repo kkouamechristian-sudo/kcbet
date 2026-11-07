@@ -45,6 +45,9 @@ function detailHTML(f){
     ${f.far?"":`<div class="kv"><b>${f.model.map(x=>pct(x)).join(" · ")}</b><small>Deuxième avis 1 X 2 (Dixon-Coles, moins précis que le marché)</small></div>`}
   </div>
   ${f.signal?`<p class="warnbox">Signal Dixon-Coles : ${esc(f.signal.label)} à ${nf(f.signal.odds)}, écart de ${sgn(f.signal.edge)}. ${f.top?`Sur l'historique, cette règle a donné ${sgn(DCR.roi)} sur ${DCR.n.toLocaleString("fr-FR")} paris (fourchette ${sgn(DCR.lo)} à ${sgn(DCR.hi)}). Ce n'est pas prouvé.`:"Cette règle n'a pas été testée sur ce championnat."}</p>`:f.thin?'<p class="note">Trop peu de matchs joués par une équipe : probabilités Dixon-Coles fragiles, pas de signal.</p>':""}
+  <h2>Tous les types de paris</h2>
+  <p class="lead">${f.far?"Calculé avec Dixon-Coles.":"Calculé à partir des cotes du match."} Colonnes : probabilité, puis juste prix. Comparez avec la cote de votre bookmaker.${f.cc&&(f.cc[0]||f.cc[1])?" Corners et cartons : moyennes récentes des équipes, estimation simple non testée.":""}</p>
+  ${marketsHTML(f)}
   ${big(f)&&f.top?`<p class="note">Gros favori : ${BIG.all.wins} gagnés sur ${BIG.all.n} sur l'historique, soit ${sgn(BIG.all.roi)} de rendement (fourchette ${sgn(BIG.all.lo)} à ${sgn(BIG.all.hi)}). Ce n'est pas prouvé.</p>`:""}`}
 function dayChip(d,i){const t=parseD(d),now=new Date();now.setHours(0,0,0,0);const n=Math.round((t-now)/864e5);
   return n===0?"Aujourd'hui":n===1?"Demain":t.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}
@@ -74,7 +77,8 @@ function renderMatches(){
 $("m-list").addEventListener("click",e=>{
   const o=e.target.closest("[data-open]"),a=e.target.closest("[data-add]");
   if(o){const k=o.dataset.open;S.open.has(k)?S.open.delete(k):S.open.add(k);renderMatches();return}
-  if(a){toggleLeg(a.dataset.add,+a.dataset.i);renderMatches()}
+  if(a){toggleLeg(a.dataset.add,+a.dataset.i);renderMatches();return}
+  const m=e.target.closest("[data-mk]");if(m)addMarket(m.dataset.mk,m.dataset.l,+m.dataset.p)
 });
 $("m-list").addEventListener("input",e=>{const m=e.target.dataset.mine;if(!m)return;const i=+e.target.dataset.i,f=byKey[m];S.mine[m+i]=e.target.value;
   const leg=(S.ticket||[]).find(l=>l.key===m&&l.i===i);if(leg&&parseFloat(e.target.value)>1){leg.o=parseFloat(e.target.value);saveTicket()}
@@ -88,11 +92,13 @@ function seedTicket(){if(S.ticket&&S.ticket.length)return;example=true;
 function toggleLeg(k,i){if(example){S.ticket=[];example=false}S.ticket=S.ticket||[];
   const ex=S.ticket.findIndex(l=>l.key===k);const same=ex>=0&&S.ticket[ex].i===i;if(ex>=0)S.ticket.splice(ex,1);
   if(!same){const m=parseFloat(S.mine[k+i]);S.ticket.push({key:k,i,o:m>1?m:byKey[k].odds[i]})}saveTicket()}
-function ticketCalc(){const L=(S.ticket||[]).filter(l=>byKey[l.key]);let p=1,o=1;for(const l of L){p*=byKey[l.key].market[l.i];o*=l.o}return{L,p,o,ev:p*o-1}}
+const legP=l=>l.p!=null?l.p:byKey[l.key].market[l.i],legName=l=>l.m||ISSUES[l.i];
+function addMarket(k,label,p){if(example){S.ticket=[];example=false}S.ticket=S.ticket||[];const ex=S.ticket.findIndex(l=>l.key===k);if(ex>=0)S.ticket.splice(ex,1);S.ticket.push({key:k,m:label,p,o:+(1/p).toFixed(2)});saveTicket();location.hash="ticket"}
+function ticketCalc(){const L=(S.ticket||[]).filter(l=>byKey[l.key]);let p=1,o=1;for(const l of L){p*=legP(l);o*=l.o}return{L,p,o,ev:p*o-1}}
 function renderTicket(){
   const{L,p,o,ev}=ticketCalc();
   const ex=$("t-example");ex.hidden=!example;if(example)ex.textContent="Exemple : les plus gros favoris de ces matchs, aux cotes moyennes. Ajoutez une sélection depuis Matchs pour commencer votre ticket.";
-  $("t-legs").innerHTML=L.length?L.map((l,n)=>{const f=byKey[l.key],q=f.market[l.i];return `<div class="leg"><div><b>${esc(f.home)} – ${esc(f.away)}</b><small>${ISSUES[l.i]} · ${pct(q)} · juste prix ${nf(1/q)}</small></div>
+  $("t-legs").innerHTML=L.length?L.map((l,n)=>{const f=byKey[l.key],q=legP(l);return `<div class="leg"><div><b>${esc(f.home)} – ${esc(f.away)}</b><small>${esc(legName(l))} · ${pct(q)} · juste prix ${nf(1/q)}</small></div>
     <input class="mini" id="tl-${l.key}" data-leg="${n}" type="number" min="1.01" step="0.01" inputmode="decimal" aria-label="Cote" value="${l.o}">
     <button class="ghost" type="button" data-del="${n}">Retirer</button></div>`}).join(""):'<p class="lead">Ticket vide. Ouvrez un match dans Matchs, puis choisissez « Au ticket ».</p>';
   const stake=parseFloat($("t-stake").value)||0;
@@ -137,6 +143,7 @@ function renderProof(){
   $("p-calib-table").innerHTML=`<table><thead><tr><th>Tranche</th><th>Annoncé</th><th>Observé</th><th>Issues</th></tr></thead><tbody>${D.calib.map(c=>`<tr><td>${c.lo*100} à ${c.hi*100} %</td><td>${pct(c.pred,1)}</td><td>${pct(c.obs,1)}</td><td>${c.n}</td></tr>`).join("")}</tbody></table>`;
   $("p-method").innerHTML=[
    "Les probabilités affichées viennent des cotes moyennes de plusieurs bookmakers, une fois leur marge retirée proportionnellement. Les prévisions lointaines, sans cote, viennent de Dixon-Coles seul et ne sont pas enregistrées dans nos résultats.",
+   "Tous les types de paris sont calculés avec les buts attendus déduits des cotes du match. Seul le résultat 1 X 2 a été testé. Les pronostics en direct utilisent le score, le temps restant et les cartons rouges. Ils ne sont pas testés et ne comptent pas dans nos résultats.",
    "Les tests historiques ci-dessus portent sur les cinq grands championnats européens. Les autres championnats affichés n'ont pas été testés.",
    "Les coupes d'Europe et les championnats africains ne figurent pas ici : aucune source gratuite ne fournit à la fois leurs cotes et leur historique.",
    "Le deuxième avis vient de notre modèle Dixon-Coles domicile/extérieur, réajusté à chaque mise à jour. Ses signaux suivent une règle fixe : écart de 5 à 20 %, au moins 10 matchs joués par équipe.",
@@ -174,7 +181,7 @@ $("j-list").addEventListener("click",e=>{const b=e.target.closest("[data-rm]");i
   if(b.dataset.sure){rmBet(b.dataset.rm).catch(()=>{$("j-msg").textContent="La suppression a échoué."})}else{b.dataset.sure="1";b.textContent="Confirmer"}});
 $("t-log").addEventListener("click",async()=>{const{L,p,o}=ticketCalc(),stake=parseFloat($("t-stake").value);
   if(!L.length||!(stake>0)){$("t-msg").textContent="Ajoutez au moins une sélection et une mise.";return}
-  const label=L.map(l=>`${byKey[l.key].home}–${byKey[l.key].away} (${ISSUES[l.i]})`).join(", ").slice(0,120);
+  const label=L.map(l=>`${byKey[l.key].home}–${byKey[l.key].away} (${legName(l)})`).join(", ").slice(0,120);
   try{await addBet({label,odds:+o.toFixed(3),stake,prob:p});$("t-msg").textContent="Ticket noté dans le journal."}catch(err){$("t-msg").textContent="L'enregistrement a échoué. Réessayez dans un instant."}});
 function bootJournal(){bets=store.get("jc-bets",[]);renderJournal()}
 
@@ -191,7 +198,7 @@ function renderResults(){
 }
 
 /* ---------- Navigation ---------- */
-const VIEWS=["matchs","resultats","ticket","preuves","journal"];
+const VIEWS=["matchs","direct","resultats","ticket","preuves","journal"];
 function route(){const v=VIEWS.includes(location.hash.slice(1))?location.hash.slice(1):"matchs";
   document.querySelectorAll("[data-view]").forEach(s=>s.hidden=s.dataset.view!==v);
   document.querySelectorAll("[data-nav]").forEach(a=>{if(a.dataset.nav===v)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});

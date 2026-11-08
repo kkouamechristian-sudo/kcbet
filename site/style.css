@@ -245,3 +245,4 @@ footer a{color:var(--accent)}
 .join-x{all:unset;cursor:pointer;width:28px;height:28px;display:grid;place-items:center;border-radius:50%;color:var(--muted);font-size:20px}
 .join-x:focus-visible{outline:2px solid var(--accent)}
 .tool-acc{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.tool-acc:hover,.tool-acc:focus-visible{background:var(--accent);color:var(--on-accent);filter:brightness(1.08)}

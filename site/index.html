@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=15">
+<link rel="stylesheet" href="style.css?v=16">
 <style>html,body{margin:0}</style>
 <script>try{var t=localStorage.getItem("kc-theme");if(!t&&matchMedia("(prefers-color-scheme: light)").matches)t="light";document.documentElement.setAttribute("data-theme",t||"dark")}catch(e){document.documentElement.setAttribute("data-theme","dark")}</script>
 </head>
@@ -28,7 +28,7 @@
       <a href="#preuves" data-nav="preuves">Preuves</a>
       <a href="#journal" data-nav="journal">Journal</a>
     </nav>
-    <div class="tools"><a class="tool tool-acc" id="t-acc" href="#compte">S'inscrire</a><button class="tool" id="t-lang" type="button">EN</button><button class="tool" id="t-theme" type="button"></button></div>
+    <div class="tools"><a class="tool tool-acc" id="t-acc" href="#compte">Connexion</a><button class="tool" id="t-lang" type="button">EN</button><button class="tool" id="t-theme" type="button"></button></div>
     <div class="ticker" id="ticker" hidden><div class="ticker-move" id="ticker-move"></div></div>
   </header>
 
@@ -199,7 +199,7 @@
 </div>
 
 <script>
-var BUILD="15";
+var BUILD="16";
 fetch("data/app.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
   window.KC=d;["config.js","i18n.js","markets.js","app.js","live.js","hero.js","ads.js","account.js"].forEach(function(u){var s=document.createElement("script");s.src=u+"?v="+BUILD+"-"+encodeURIComponent(d.generated);s.async=false;document.body.appendChild(s)});
 }).catch(function(){var h=document.querySelector("h1");if(h)h.textContent="Données indisponibles pour le moment. Réessayez dans un instant."});

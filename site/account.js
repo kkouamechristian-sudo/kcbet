@@ -3,7 +3,7 @@ const ACC={sb:null,user:null,ready:false,mode:"signup",msg:""};
 const accOn=()=>!!(window.CFG&&CFG.supabaseUrl&&CFG.supabaseAnonKey);
 function accRender(){
   const box=$("acc-box"),btn=$("t-acc");
-  if(btn)btn.textContent=ACC.user?T("Mon compte","My account"):T("S'inscrire","Sign up");
+  if(btn)btn.textContent=ACC.user?T("Mon compte","My account"):T("Connexion","Sign in");
   const j=$("join");if(j){let hid=false;try{hid=localStorage.getItem("kc-join-x")==="1"}catch(e){}j.hidden=!!ACC.user||hid}
   if(!accOn()){box.innerHTML=`<p class="lead">${T("Les inscriptions ouvrent très bientôt. Vous pourrez créer un compte gratuit pour retrouver votre journal de paris sur tous vos appareils.","Sign-ups open very soon. You will be able to create a free account to find your betting log on all your devices.")}</p>`;return}
   if(!ACC.ready){box.innerHTML=`<p class="lead">${T("Chargement…","Loading…")}</p>`;return}

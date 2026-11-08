@@ -127,7 +127,8 @@ const genTypes=()=>[...document.querySelectorAll("#g-types [data-gt]")].filter(b
 $("g-types").addEventListener("click",e=>{const b=e.target.closest("[data-gt]");if(!b)return;const v=b.dataset.gt;const all=[...document.querySelectorAll("#g-types [data-gt]")].filter(x=>!x.dataset.gt.startsWith("__"));if(v==="__all")all.forEach(x=>x.setAttribute("aria-pressed","true"));else if(v==="__none")all.forEach(x=>x.setAttribute("aria-pressed","false"));else b.setAttribute("aria-pressed",b.getAttribute("aria-pressed")==="true"?"false":"true")});
 let genUsed=new Set();
 function genTicket(again){
-  const target=+$("g-target").value,period=+$("g-period").value,types=genTypes(),max=+$("g-max").value,scope=$("g-scope").value;
+  const target=parseFloat(String($("g-target").value).replace(",",".")),period=+$("g-period").value,types=genTypes(),max=+$("g-max").value,scope=$("g-scope").value;
+  if(!(target>=1.05&&target<=100000)){$("g-msg").textContent="Entrez une cote visée entre 1,05 et 100 000, par exemple 2,5.";return}
   if(!types.length){$("g-msg").textContent="Cochez au moins un type de pari.";return}
   if(!again)genUsed=new Set();
   const t0=new Date();t0.setHours(0,0,0,0);const now=Date.now(),cands=[];

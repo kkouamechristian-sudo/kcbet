@@ -50,9 +50,23 @@ async function tick(){if(V.busy||document.hidden)return;V.busy=true;
   for(let i=0;i<list.length;i+=5){const r=await Promise.allSettled(list.slice(i,i+5).map(pull));r.forEach(x=>x.status==="fulfilled"?ok++:bad++)}
   if(fullRun)V.full=Date.now();V.err=!ok&&bad>0;if(ok)V.at=Date.now();V.busy=false;
   window.LIVE=new Map();for(const e of V.events.values())if(e.fx)window.LIVE.set(e.fx.key,e);
-  renderLive();
+  renderLive();renderTicker();
   const a=document.activeElement;if(!$("m-list").closest("section").hidden&&!(a&&a.closest&&a.closest("#m-list")&&a.tagName==="INPUT"))renderMatches()}
 $("l-list").addEventListener("click",e=>{const b=e.target.closest("[data-ev]");if(b){const k=b.dataset.ev;V.open.has(k)?V.open.delete(k):V.open.add(k);renderLive();return}
   const m=e.target.closest("[data-mk]");if(m)addMarket(m.dataset.mk,m.dataset.l,+m.dataset.p)});
+let tickerText="";
+function renderTicker(){
+  const live=[...V.events.values()].filter(e=>e.state==="in").sort((a,b)=>(b.fx?1:0)-(a.fx?1:0));
+  const box=$("ticker"),mv=$("ticker-move");
+  const item=e=>{const p=liveProbs(e),i=p?p.indexOf(Math.max(...p)):-1,lab=p&&e.fx?[e.fx.home,"Nul",e.fx.away][i]:"";
+    return `<button class="tk" type="button" data-tk="${esc(e.id)}"><span class="tk-min">${esc(clockLabel(e))}</span> ${esc(e.home)} <b>${e.hg} – ${e.ag}</b> ${esc(e.away)}${p?` <span class="tk-p">${esc(lab)} ${pct(p[i])}</span>`:""}</button>`};
+  const html=live.map(item).join("");
+  box.hidden=!live.length;
+  if(html===tickerText)return;
+  tickerText=html;
+  mv.innerHTML=html+html;
+  mv.style.animationDuration=Math.max(20,live.length*7)+"s";
+}
+$("ticker").addEventListener("click",e=>{const b=e.target.closest("[data-tk]");if(!b)return;V.tab="in";V.chosen=true;V.open.add(b.dataset.tk);location.hash="direct";renderLive()});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)tick()});
 renderLive();tick();V.timer=setInterval(tick,45000);

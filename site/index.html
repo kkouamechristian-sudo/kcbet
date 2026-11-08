@@ -27,6 +27,7 @@
       <a href="#preuves" data-nav="preuves">Preuves</a>
       <a href="#journal" data-nav="journal">Journal</a>
     </nav>
+    <div class="ticker" id="ticker" hidden><div class="ticker-move" id="ticker-move"></div></div>
   </header>
 
   <section data-view="matchs">
@@ -75,7 +76,7 @@
       <h2>Générer un ticket</h2>
       <p class="lead">Le générateur choisit les paris les plus probables parmi les types cochés, un seul par match et au plus deux par championnat, jusqu'à la cote visée. Il affiche la vraie chance de gain.</p>
       <div class="formgrid">
-        <label class="field">Cote visée<select id="g-target"><option value="1.5">1,5</option><option value="2" selected>2</option><option value="3">3</option><option value="5">5</option><option value="10">10</option></select></label>
+        <label class="field">Cote visée<input id="g-target" type="text" inputmode="decimal" value="2" list="g-cotes" autocomplete="off" aria-describedby="g-msg"><datalist id="g-cotes"><option value="1,5"><option value="2"><option value="3"><option value="5"><option value="10"><option value="20"><option value="50"><option value="100"></datalist></label>
         <label class="field">Période<select id="g-period"><option value="0">Aujourd'hui</option><option value="1" selected>Aujourd'hui et demain</option><option value="2">3 jours</option><option value="6">7 jours</option></select></label>
 
         <label class="field">Nombre de sélections<select id="g-max"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>12</option><option>15</option><option>20</option><option>25</option><option>30</option></select></label>

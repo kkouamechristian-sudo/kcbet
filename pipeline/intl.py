@@ -113,5 +113,5 @@ def fixtures(data, today):
                             date=ko.strftime("%d/%m/%Y"), time=ko.strftime("%H:%M"), home=e["home"], away=e["away"], odds=None, max=None,
                             market=pk, model=pk, lam=[lh, la], rho=0.0, cc=None, xg=[lh, la], o25=P["O2.5"][1], btts=P["BTTS"][1], score=f"{i}-{j}",
                             signal=None, thin=False, ao25=None, au25=None, sure=paris.sure(lh, la, 0, e["home"], e["away"]),
-                            elo=[round(R[h]), round(R[a])]))
+                            elo=[round(R[h]), round(R[a])], logos=[e.get("hlogo"), e.get("alogo")]))
     return out, test(hist)

@@ -48,5 +48,40 @@ def events(d):
         st = e.get("status", {}).get("type", {})
         out.append(dict(id=e["id"], date=e["date"], home=t["home"]["team"]["displayName"], away=t["away"]["team"]["displayName"],
                         hg=int(t["home"].get("score") or 0), ag=int(t["away"].get("score") or 0),
+                        hlogo=t["home"]["team"].get("logo"), alogo=t["away"]["team"].get("logo"),
                         state=st.get("state"), done=bool(st.get("completed")), name=st.get("name", "")))
     return out
+
+
+def teams(slug):
+    """Equipes d'un championnat avec leur logo."""
+    with urllib.request.urlopen(urllib.request.Request(f"{BASE}{slug}/teams", headers=UA), timeout=30) as r:
+        j = json.load(r)
+    out = []
+    for t in j["sports"][0]["leagues"][0]["teams"]:
+        t = t["team"]
+        logo = (t.get("logos") or [{}])[0].get("href")
+        if logo:
+            out.append(dict(names=[t.get("displayName", ""), t.get("shortDisplayName", ""), t.get("name", "")], logo=logo))
+    return out
+
+
+ALIAS = {"FC Koln": "FC Cologne", "FC Copenhagen": "F.C. København", "HamKam": "Hamarkameratene", "Sp Lisbon": "Sporting CP", "Sp Braga": "Braga",
+         "Ath Bilbao": "Athletic Club", "Ath Madrid": "Atlético Madrid", "La Coruna": "Deportivo La Coruña", "Los Angeles FC": "LAFC", "Los Angeles Galaxy": "LA Galaxy",
+         "Univ. Craiova": "Universitatea Craiova", "Atletico-MG": "Atlético-MG", "Aarhus": "AGF", "Man City": "Manchester City", "Man United": "Manchester United",
+         "Nott'm Forest": "Nottingham Forest", "Wolves": "Wolverhampton Wanderers", "Paris SG": "Paris Saint-Germain", "Ein Frankfurt": "Eintracht Frankfurt",
+         "M'gladbach": "Borussia Mönchengladbach", "Sociedad": "Real Sociedad", "Betis": "Real Betis", "Espanol": "Espanyol", "Vallecano": "Rayo Vallecano"}
+
+
+def logo_for(name, roster):
+    q = ALIAS.get(name, name)
+    flat = lambda x: unicodedata.normalize("NFKD", x).encode("ascii", "ignore").decode().lower().strip()
+    for t in roster:
+        if any(n and flat(n) == flat(q) for n in t["names"]):
+            return t["logo"]
+    best, bs = None, 0.0
+    for t in roster:
+        sc = max(sim(q, n) for n in t["names"] if n) if any(t["names"]) else 0
+        if sc > bs:
+            best, bs = t, sc
+    return best["logo"] if best and bs >= .7 else None

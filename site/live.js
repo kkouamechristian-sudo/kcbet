@@ -14,7 +14,7 @@ function findFixture(lg,home,away,date){if(!lg)return null;const day=new Date(da
   return best}
 function parseEvent(e,slug){const c=e.competitions&&e.competitions[0];if(!c)return null;const t=c.competitors||[],h=t.find(x=>x.homeAway==="home"),a=t.find(x=>x.homeAway==="away");if(!h||!a)return null;
   const st=e.status||{},ty=st.type||{},reds=(c.details||[]).filter(d=>d.redCard),idH=h.team&&h.team.id,lg=SLUG2LG[slug];
-  const ev={id:e.id,slug,lg,date:e.date,state:ty.state,done:ty.completed,detail:ty.description||"",clock:st.displayClock||"",period:st.period||0,name:ty.name||"",home:h.team.displayName,away:a.team.displayName,hg:+h.score||0,ag:+a.score||0,redH:reds.filter(d=>d.team&&d.team.id===idH).length,redA:reds.filter(d=>d.team&&d.team.id!==idH).length};
+  const ev={id:e.id,slug,lg,date:e.date,state:ty.state,done:ty.completed,detail:ty.description||"",clock:st.displayClock||"",period:st.period||0,name:ty.name||"",home:h.team.displayName,away:a.team.displayName,hl:h.team.logo,al:a.team.logo,hg:+h.score||0,ag:+a.score||0,redH:reds.filter(d=>d.team&&d.team.id===idH).length,redA:reds.filter(d=>d.team&&d.team.id!==idH).length};
   ev.fx=findFixture(lg,ev.home,ev.away,ev.date);return ev}
 function liveState(ev){const m=parseInt(ev.clock,10)||0,ht=/HALFTIME/.test(ev.name),min=ht?45:ev.period>=2?Math.max(46,m):m;
   return{min,left:Math.max(.005,(94-min)/94),hg:ev.hg,ag:ev.ag,redH:ev.redH,redA:ev.redA}}
@@ -30,11 +30,11 @@ function renderLive(){
   $("l-status").textContent=V.err&&!all.length?"Scores en direct indisponibles pour le moment. La page réessaie toute seule.":V.at?`Mis à jour à ${new Date(V.at).toLocaleTimeString(LOC,{hour:"2-digit",minute:"2-digit",second:"2-digit"})}. Actualisation automatique.`:"Chargement des scores…";
   const L=sets[V.tab].sort((a,b)=>String(leagueName(a)).localeCompare(String(leagueName(b)),"fr")||a.date.localeCompare(b.date)),G=new Map();L.forEach(e=>{const k=leagueName(e);if(!G.has(k))G.set(k,[]);G.get(k).push(e)});
   let h="";
-  for(const[k,ms]of G){h+=`<div class="group"><span>${esc(k)}</span><small>${ms.length}</small></div>`;
+  for(const[k,ms]of G){h+=`<div class="group"><span>${flagOf(k)}${esc(k)}</span><small>${ms.length}</small></div>`;
     for(const e of ms){const p=liveProbs(e),open=V.open.has(e.id),pm=e.fx&&!p?e.fx.market:p,i=pm?pm.indexOf(Math.max(...pm)):0,lab=pm&&e.fx?[e.fx.home,"Nul",e.fx.away][i]:"";
       h+=`<article class="match"><button class="mhead" type="button" data-ev="${esc(e.id)}" aria-expanded="${open}"${e.fx?"":" disabled"}>
         <span class="time ${e.state==="in"?"now":""}">${esc(clockLabel(e))}</span>
-        <span class="teams"><span>${esc(e.home)}${e.redH?` <i class="red" aria-label="${e.redH} carton rouge"></i>`:""}</span><span>${esc(e.away)}${e.redA?` <i class="red" aria-label="${e.redA} carton rouge"></i>`:""}</span>${pm?`<span class="bar" aria-hidden="true">${[["s1",0],["sx",1],["s2",2]].map(([c,k])=>`<i class="${c}" style="width:${pm[k]*100}%"></i>`).join("")}</span>`:""}</span>
+        <span class="teams"><span>${tlogo("",e.hl)}${esc(e.home)}${e.redH?` <i class="red" aria-label="${e.redH} carton rouge"></i>`:""}</span><span>${tlogo("",e.al)}${esc(e.away)}${e.redA?` <i class="red" aria-label="${e.redA} carton rouge"></i>`:""}</span>${pm?`<span class="bar" aria-hidden="true">${[["s1",0],["sx",1],["s2",2]].map(([c,k])=>`<i class="${c}" style="width:${pm[k]*100}%"></i>`).join("")}</span>`:""}</span>
         ${e.state==="pre"?"":`<span class="scoreb"><b>${e.hg}</b><b>${e.ag}</b></span>`}
         <span class="pred">${pm&&e.state!=="post"?`<b>${esc(lab)}</b><small>${pct(pm[i])}${e.state==="in"?" en direct":""}</small>`:e.state==="post"||e.fx?"":'<small>Pas de pronostic</small>'}</span></button>
         ${open&&e.fx?`<div class="detail">${e.state==="in"?`<p class="note">Pronostic recalculé avec le score, le temps restant et les cartons rouges connus. Méthode non testée sur l'historique.</p>${marketsHTML(e.fx,liveState(e))}`:`${marketsHTML(e.fx)}`}</div>`:""}</article>`}}
@@ -59,7 +59,7 @@ function renderTicker(){
   const live=[...V.events.values()].filter(e=>e.state==="in").sort((a,b)=>(b.fx?1:0)-(a.fx?1:0));
   const box=$("ticker"),mv=$("ticker-move");
   const item=e=>{const p=liveProbs(e),i=p?p.indexOf(Math.max(...p)):-1,lab=p&&e.fx?[e.fx.home,"Nul",e.fx.away][i]:"";
-    return `<button class="tk" type="button" data-tk="${esc(e.id)}"><span class="tk-min">${esc(clockLabel(e))}</span> ${esc(e.home)} <b>${e.hg} – ${e.ag}</b> ${esc(e.away)}${p?` <span class="tk-p">${esc(lab)} ${pct(p[i])}</span>`:""}</button>`};
+    return `<button class="tk" type="button" data-tk="${esc(e.id)}"><span class="tk-min">${esc(clockLabel(e))}</span> ${tlogo("",e.hl)}${esc(e.home)} <b>${e.hg} – ${e.ag}</b> ${tlogo("",e.al)}${esc(e.away)}${p?` <span class="tk-p">${esc(lab)} ${pct(p[i])}</span>`:""}</button>`};
   const html=live.map(item).join("");
   box.hidden=!live.length;
   if(html===tickerText)return;

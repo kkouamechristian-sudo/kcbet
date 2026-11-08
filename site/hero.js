@@ -1,6 +1,6 @@
 /* Match en vedette : grand bloc au-dessus des pronostics, qui fait defiler les affiches du moment. */
 const H={i:0,list:[],timer:null,hold:false};
-function crest(name){let h=0;for(const c of name)h=(h*31+c.charCodeAt(0))%360;const ini=name.replace(/[^A-Za-zÀ-ÿ ]/g,"").split(" ").filter(Boolean).map(w=>w[0]).join("").slice(0,2).toUpperCase()||"?";
+function crest(name){const u=LOGO[name];if(u)return `<span class="crest crest-img" aria-hidden="true"><img src="${esc(u)}" alt="" referrerpolicy="no-referrer" onerror="this.parentNode.classList.remove('crest-img');this.remove()"></span>`;let h=0;for(const c of name)h=(h*31+c.charCodeAt(0))%360;const ini=name.replace(/[^A-Za-zÀ-ÿ ]/g,"").split(" ").filter(Boolean).map(w=>w[0]).join("").slice(0,2).toUpperCase()||"?";
   return `<span class="crest" style="--h:${h}" aria-hidden="true">${esc(ini)}</span>`}
 function heroPick(){const now=Date.now(),out=[];
   const live=window.LIVE?[...window.LIVE.values()].filter(e=>e.state==="in"&&e.fx):[];
@@ -17,7 +17,7 @@ function renderHero(){
   const p=on&&typeof liveProbs==="function"?liveProbs(ev)||f.market:f.market,su=f.sure;
   const d=new Date(f.ko),t0=new Date();t0.setHours(0,0,0,0);const n=Math.round((new Date(d).setHours(0,0,0,0)-t0)/864e5);
   const day=n===0?T("Aujourd'hui","Today"):n===1?T("Demain","Tomorrow"):d.toLocaleDateString(LOC,{weekday:"long",day:"numeric",month:"long"});
-  box.innerHTML=`<div class="hero-top"><span class="hero-tag">${on?`<i class="dot-live"></i>${T("En direct","Live")}`:"★ "+T("Match en vedette","Featured match")}</span><span class="hero-lg">${esc(LG[f.lg]||f.league)}</span></div>
+  box.innerHTML=`<div class="hero-top"><span class="hero-tag">${on?`<i class="dot-live"></i>${T("En direct","Live")}`:"★ "+T("Match en vedette","Featured match")}</span><span class="hero-lg">${flagOf(LG[f.lg]||"")}${esc(LG[f.lg]||f.league)}</span></div>
    <div class="hero-main">
     <div class="hero-team">${crest(f.home)}<b>${esc(f.home)}</b></div>
     <div class="hero-mid">${on?`<b class="hero-score">${ev.hg} – ${ev.ag}</b><small class="hero-live">${esc(clockLabel(ev))}</small>`:`<b class="hero-time">${esc(d.toLocaleTimeString(LOC,{hour:"2-digit",minute:"2-digit"}))}</b><small>${esc(day)}</small><small class="hero-cd">${esc(countdown(f.ko))}</small>`}</div>

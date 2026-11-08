@@ -10,6 +10,11 @@ const store={get(k,f){try{const v=localStorage.getItem(k);return v==null?f:JSON.
 const key=f=>(f.date+"|"+f.home+"|"+f.away).replace(/[^A-Za-z0-9]/g,"");
 D.fixtures.forEach(f=>f.key=key(f));
 const byKey=Object.fromEntries(D.fixtures.map(f=>[f.key,f]));
+const LOGO=D.logos||{};
+const FLAG={"Angleterre":"gb-eng","Écosse":"gb-sct","Espagne":"es","Allemagne":"de","Italie":"it","France":"fr","Pays-Bas":"nl","Belgique":"be","Portugal":"pt","Turquie":"tr","Grèce":"gr","Argentine":"ar","Autriche":"at","Brésil":"br","Chine":"cn","Danemark":"dk","Finlande":"fi","Irlande":"ie","Japon":"jp","Mexique":"mx","Norvège":"no","Pologne":"pl","Roumanie":"ro","Suède":"se","Suisse":"ch","États-Unis":"us","Europe":"eu"};
+const imgTag=(u,c)=>u?`<img class="${c}" src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">`:"";
+const tlogo=(n,u)=>imgTag(u||LOGO[n],"tl");
+const flagOf=lab=>{const c=FLAG[String(lab).split(" · ")[0]];return c?imgTag(`https://flagcdn.com/w40/${c}.png`,"flag"):""};
 const parseD=s=>{const[d,m,y]=s.split("/").map(Number);return new Date(y,m-1,d)};
 const dayLabel=s=>parseD(s).toLocaleDateString(LOC,{weekday:"long",day:"numeric",month:"long"});
 const STRAT=Object.fromEntries(D.table.map(t=>[t.label,t]));
@@ -62,20 +67,20 @@ function renderMatches(){
   $("f-day").querySelectorAll(".chip").forEach(b=>{const n=D.fixtures.filter(f=>f.date===b.dataset.v).length;b.insertAdjacentHTML("beforeend",`<small>${n}</small>`);if(!n)b.classList.add("empty")});
   chips($("f-league"),[["all","Tous les championnats"],...lgs.filter(l=>l===S.league||count(l)>0).map(l=>[l,LG[l]])],S.league,v=>{S.league=v;renderMatches()});
   chips($("f-kind"),[["all","Tous"],["sure","Plus sûrs"],["big","Gros favoris"],["sig","Signaux Dixon-Coles"],["far","Prévisions"]],S.kind,v=>{S.kind=v;renderMatches()});
-  $("f-league").querySelectorAll(".chip").forEach(b=>{const v=b.dataset.v,n=v==="all"?D.fixtures.filter(f=>onDay(f)&&kindOk(f)).length:count(v);b.insertAdjacentHTML("beforeend",`<small>${n}</small>`)});
+  $("f-league").querySelectorAll(".chip").forEach(b=>{if(b.dataset.v!=="all")b.insertAdjacentHTML("afterbegin",flagOf(LG[b.dataset.v]));const v=b.dataset.v,n=v==="all"?D.fixtures.filter(f=>onDay(f)&&kindOk(f)).length:count(v);b.insertAdjacentHTML("beforeend",`<small>${n}</small>`)});
   const L=D.fixtures.filter(f=>onDay(f)&&kindOk(f)&&(S.league==="all"||f.lg===S.league));
   const order=[...lgs],G=new Map();L.sort((a,b)=>order.indexOf(a.lg)-order.indexOf(b.lg)||a.ko.localeCompare(b.ko)).forEach(f=>{if(!G.has(f.lg))G.set(f.lg,[]);G.get(f.lg).push(f)});
   let h="";
   if(S.kind==="sure"){G.clear();if(L.length)G.set("__sure",[...L].sort((a,b)=>b.sure.p-a.sure.p))}
   h+=S.kind==="sure"&&L.length?'<p class="note" style="margin:8px">Les paris les plus probables du jour, tous types confondus. Une forte probabilité va avec une cote faible : ce n\'est pas forcément un bon pari.</p>':"";
-  for(const[lg,ms]of G){h+=`<div class="group"><span>${lg==="__sure"?"Les plus sûrs":esc(LG[lg])}</span><small>${ms.length}</small></div>`;
+  for(const[lg,ms]of G){h+=`<div class="group"><span>${lg==="__sure"?"Les plus sûrs":flagOf(LG[lg])+esc(LG[lg])}</span><small>${ms.length}</small></div>`;
     for(const f of ms){const open=S.open.has(f.key),ev=window.LIVE&&window.LIVE.get(f.key),on=ev&&ev.state!=="pre";
       const lp=ev&&ev.state==="in"&&typeof liveProbs==="function"?liveProbs(ev):null,pm=lp||f.market,m=Math.max(...pm),i=pm.indexOf(m);
       const tm=on?clockLabel(ev):f.far&&!f.intl?"Prév.":new Date(f.ko).toLocaleTimeString(LOC,{hour:"2-digit",minute:"2-digit"});
       const su=f.sure;
       h+=`<article class="match${on?" live":""}"><button class="mhead" type="button" data-open="${f.key}" aria-expanded="${open}">
         <span class="time${ev&&ev.state==="in"?" now":""}">${esc(tm)}</span>
-        <span class="teams"><span>${esc(f.home)}</span><span>${esc(f.away)}</span><span class="bar" aria-hidden="true">${[["s1",0],["sx",1],["s2",2]].map(([c,k])=>`<i class="${c}" style="width:${pm[k]*100}%"></i>`).join("")}</span></span>
+        <span class="teams"><span>${tlogo(f.home)}${esc(f.home)}</span><span>${tlogo(f.away)}${esc(f.away)}</span><span class="bar" aria-hidden="true">${[["s1",0],["sx",1],["s2",2]].map(([c,k])=>`<i class="${c}" style="width:${pm[k]*100}%"></i>`).join("")}</span></span>
         ${on?`<span class="scoreb"><b>${ev.hg}</b><b>${ev.ag}</b></span>`:f.odds?`<span class="odds">${f.odds.map((o,k)=>`<span class="${k===i?"best":""}">${nf(o)}</span>`).join("")}</span>`:""}
         <span class="pred"><b>${esc([f.home,"Nul",f.away][i])}</b><small>${pct(m)}${lp?" en direct":ev&&ev.state==="post"?" avant match":f.odds?` · ${nf(f.odds[i])}`:""}</small><span class="tags">${big(f)?'<span class="tag">Favori</span>':""}${f.signal?'<span class="tag">Signal</span>':""}</span></span>
         ${su&&!on?`<span class="surec" data-pre="${T("Plus sûr :","Safest:")}"><b>${esc(su.label)}</b><small>${pct(su.p)} · ${su.odds?nf(su.odds):"juste "+nf(1/su.p)}</small></span>`:""}</button>
@@ -235,7 +240,7 @@ function renderResults(){
   $("r-lead").textContent=reg.length?`Chaque pronostic est enregistré avant le coup d'envoi, puis comparé au score final, sans retouche. Les scores arrivent quelques heures après le match. Suivi public depuis le ${first}.`:"Le suivi public commence avec les prochains matchs.";
   const fig=(r,l)=>r.n?`<div class="fig"><b class="${r.roi>=0?"pos":"neg"}">${sgn(r.roi)}</b><span>${l} : ${r.wins} gagnés sur ${r.n}, ${pct(r.hit)}, cote moyenne ${nf(r.avg_odds)}</span></div>`:"";
   $("r-figs").innerHTML=Sv.pick.n?fig(Sv.pick,"Pronostics")+(Sv.sure&&Sv.sure.n?`<div class="fig"><b>${pct(Sv.sure.hit)}</b><span>Paris les plus sûrs réussis : ${Sv.sure.wins} sur ${Sv.sure.n}, pour ${pct(Sv.sure.expected)} annoncés</span></div>`:"")+fig(Sv.big,"Gros favoris")+fig(Sv.signal,"Signaux Dixon-Coles"):`<div class="fig"><b>${wait.length}</b><span>Pronostics en attente de résultat. Les résultats arrivent dans les jours suivant le match.</span></div>`;
-  const row=x=>{const r=x.result,sig=x.signal;return `<div class="result"><div><b>${esc(x.home)} – ${esc(x.away)}</b><small>${esc(new Date(x.ko).toLocaleDateString(LOC,{day:"numeric",month:"short"}))} · ${esc(x.league)} · Pronostic ${esc(x.pick.label)}, ${pct(x.pick.p)}, cote ${nf(x.pick.odds)}${sig?` · Signal ${esc(sig.label)} à ${nf(sig.odds)}`:""}${x.sure?` · Sûr : ${esc(x.sure.label)} ${pct(x.sure.p)}${r&&r.sure!=null?(r.sure?" ✓":" ✗"):""}`:""}</small></div>
+  const row=x=>{const r=x.result,sig=x.signal;return `<div class="result"><div><b>${tlogo(x.home)}${esc(x.home)} – ${tlogo(x.away)}${esc(x.away)}</b><small>${esc(new Date(x.ko).toLocaleDateString(LOC,{day:"numeric",month:"short"}))} · ${esc(x.league)} · Pronostic ${esc(x.pick.label)}, ${pct(x.pick.p)}, cote ${nf(x.pick.odds)}${sig?` · Signal ${esc(sig.label)} à ${nf(sig.odds)}`:""}${x.sure?` · Sûr : ${esc(x.sure.label)} ${pct(x.sure.p)}${r&&r.sure!=null?(r.sure?" ✓":" ✗"):""}`:""}</small></div>
    <div class="tick ${r?(r.pick?"pos":"neg"):""}">${r?`${r.hg} – ${r.ag} · ${r.pick?"Gagné":"Perdu"}`:x.void?"Annulé":new Date(x.ko)>new Date()?"À venir":"En attente"}</div></div>`};
   const past=[...done,...wait].filter(x=>new Date(x.ko)<=new Date()).sort((a,b)=>b.ko.localeCompare(a.ko)),soon=wait.filter(x=>new Date(x.ko)>new Date()).length;
   $("r-list").innerHTML=reg.length?`<h2>Historique</h2>${soon?`<p class="lead">${soon} pronostics enregistrés pour des matchs à venir.</p>`:""}`+past.slice(0,200).map(row).join(""):'<p class="lead">Aucun pronostic enregistré pour le moment.</p>';

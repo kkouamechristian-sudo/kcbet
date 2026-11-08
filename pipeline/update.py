@@ -144,6 +144,34 @@ def apply(x, hg, ag, src):
                        sure=paris.wins(sure["code"], hg, ag) if sure else None)
 
 
+def logos(fixtures, reg):
+    """Logo de chaque equipe affichee, lu chez ESPN ; une equipe sans correspondance garde ses initiales."""
+    out, rosters = {}, {}
+    for f in fixtures:
+        if f.get("intl"):
+            for n, u in zip((f["home"], f["away"]), f.get("logos") or []):
+                if u:
+                    out[n] = u
+    teams_by_lg = {}
+    for x in list(fixtures) + list(reg):
+        if not x.get("intl") and x["lg"] in L.ESPN:
+            teams_by_lg.setdefault(x["lg"], set()).update((x["home"], x["away"]))
+    for lg, names in teams_by_lg.items():
+        slug = L.ESPN[lg]
+        if slug not in rosters:
+            try:
+                rosters[slug] = espn.teams(slug)
+            except Exception:
+                rosters[slug] = []
+        for n in names:
+            if n not in out:
+                u = espn.logo_for(n, rosters[slug])
+                if u:
+                    out[n] = u
+    print("logos", len(out))
+    return out
+
+
 def settle_espn(reg, now):
     """Scores finaux ESPN pour les matchs termines que la source principale n'a pas encore publies."""
     cache, n = {}, 0
@@ -254,6 +282,7 @@ def main():
         reg = load_json(REG, [])
         added = register(reg, d["fixtures"], now)
         settled = settle(reg, tmp, now) + settle_espn(reg, now)
+        d["logos"] = logos(d["fixtures"], reg)
         d["generated"] = now.isoformat()
         d["registre"] = sorted(reg, key=lambda x: x["ko"], reverse=True)[:600]
         d["suivi"] = stats(reg)

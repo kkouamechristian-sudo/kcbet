@@ -73,7 +73,8 @@ function renderMatches(){
   let h="";
   if(S.kind==="sure"){G.clear();if(L.length)G.set("__sure",[...L].sort((a,b)=>b.sure.p-a.sure.p))}
   h+=S.kind==="sure"&&L.length?'<p class="note" style="margin:8px">Les paris les plus probables du jour, tous types confondus. Une forte probabilité va avec une cote faible : ce n\'est pas forcément un bon pari.</p>':"";
-  for(const[lg,ms]of G){h+=`<div class="group"><span>${lg==="__sure"?"Les plus sûrs":flagOf(LG[lg])+esc(LG[lg])}</span><small>${ms.length}</small></div>`;
+  let gi=0;
+  for(const[lg,ms]of G){if(gi&&gi%3===0&&typeof adSlot==="function")h+=adSlot("feed");gi++;h+=`<div class="group"><span>${lg==="__sure"?"Les plus sûrs":flagOf(LG[lg])+esc(LG[lg])}</span><small>${ms.length}</small></div>`;
     for(const f of ms){const open=S.open.has(f.key),ev=window.LIVE&&window.LIVE.get(f.key),on=ev&&ev.state!=="pre";
       const lp=ev&&ev.state==="in"&&typeof liveProbs==="function"?liveProbs(ev):null,pm=lp||f.market,m=Math.max(...pm),i=pm.indexOf(m);
       const tm=on?clockLabel(ev):f.far&&!f.intl?"Prév.":new Date(f.ko).toLocaleTimeString(LOC,{hour:"2-digit",minute:"2-digit"});
@@ -219,9 +220,9 @@ function renderJournal(){
     <button class="ghost" type="button" data-rm="${esc(b.id)}">Supprimer</button></div>`).join(""):'<p class="lead">Aucun pari pour le moment. Ajoutez le premier avec le formulaire, ou notez un ticket depuis l\'onglet Ticket.</p>';
 }
 async function addBet(b){b.id="b"+Date.now()+Math.floor(Math.random()*1e4);b.at=Date.now();b.status="open";
-  if(col){await col.doc(b.id).set(b)}else{bets.push(b);store.set("jc-bets",bets);renderJournal()}}
-async function patchBet(id,patch){const b=bets.find(x=>x.id===id);if(!b)return;Object.assign(b,patch);if(col)await col.doc(id).update(patch);else store.set("jc-bets",bets);renderJournal()}
-async function rmBet(id){bets=bets.filter(x=>x.id!==id);if(col)await col.doc(id).delete();else store.set("jc-bets",bets);renderJournal()}
+  if(col){await col.doc(b.id).set(b)}else{bets.push(b);store.set("jc-bets",bets);renderJournal()}if(window.cloudSave)cloudSave(b)}
+async function patchBet(id,patch){const b=bets.find(x=>x.id===id);if(!b)return;Object.assign(b,patch);if(col)await col.doc(id).update(patch);else store.set("jc-bets",bets);if(window.cloudSave)cloudSave(b);renderJournal()}
+async function rmBet(id){bets=bets.filter(x=>x.id!==id);if(col)await col.doc(id).delete();else store.set("jc-bets",bets);if(window.cloudDel)cloudDel(id);renderJournal()}
 $("j-form").addEventListener("submit",async e=>{e.preventDefault();const odds=parseFloat($("j-odds").value),stake=parseFloat($("j-stake").value),p=parseFloat($("j-prob").value);
   try{await addBet({label:$("j-label").value.trim(),odds,stake,prob:p>0?p/100:null});$("j-form").reset();$("j-msg").textContent="Pari ajouté."}catch(err){$("j-msg").textContent="L'enregistrement a échoué. Réessayez dans un instant."}});
 $("j-list").addEventListener("change",e=>{const id=e.target.dataset.status;if(id)patchBet(id,{status:e.target.value}).catch(()=>{$("j-msg").textContent="La modification n'a pas été enregistrée."})});
@@ -247,7 +248,7 @@ function renderResults(){
 }
 
 /* ---------- Navigation ---------- */
-const VIEWS=["matchs","direct","resultats","ticket","preuves","journal"];
+const VIEWS=["compte","publicite","confidentialite","matchs","direct","resultats","ticket","preuves","journal"];
 function route(){const v=VIEWS.includes(location.hash.slice(1))?location.hash.slice(1):"matchs";
   document.querySelectorAll("[data-view]").forEach(s=>s.hidden=s.dataset.view!==v);
   document.querySelectorAll("[data-nav]").forEach(a=>{if(a.dataset.nav===v)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});

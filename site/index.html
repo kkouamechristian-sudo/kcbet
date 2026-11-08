@@ -28,22 +28,22 @@
       <a href="#preuves" data-nav="preuves">Preuves</a>
       <a href="#journal" data-nav="journal">Journal</a>
     </nav>
-    <div class="tools"><button class="tool" id="t-lang" type="button">EN</button><button class="tool" id="t-theme" type="button"></button></div>
+    <div class="tools"><a class="tool tool-acc" id="t-acc" href="#compte">Connexion</a><button class="tool" id="t-lang" type="button">EN</button><button class="tool" id="t-theme" type="button"></button></div>
     <div class="ticker" id="ticker" hidden><div class="ticker-move" id="ticker-move"></div></div>
   </header>
 
   <section data-view="matchs">
-    <div>
-      <h1>Pronostics du jour</h1>
-      <p class="lead" id="m-lead"></p>
-    </div>
+    <h1 class="sr-only">Pronostics du jour</h1>
+    <p class="sr-only" id="m-lead"></p>
     <section class="hero" id="hero" aria-label="Match en vedette" hidden></section>
+    <div data-ad="top"></div>
     <div id="m-stale" class="warnbox" hidden></div>
     <div class="chips strip" id="f-day" role="group" aria-label="Jour"></div>
     <div class="split">
       <aside class="side">
         <h2>Compétitions</h2>
         <div class="chips" id="f-league" role="group" aria-label="Compétition"></div>
+        <div data-ad="side"></div>
       </aside>
       <div class="mainc">
         <div class="chips" id="f-kind" role="group" aria-label="Type de match"></div>
@@ -149,12 +149,53 @@
     <div class="card" id="j-list"></div>
   </section>
 
-  <footer>Réservé aux adultes. Le pari sportif peut faire perdre de l'argent et créer une dépendance : ne misez que ce que vous pouvez perdre, et ne cherchez jamais à vous refaire. kcbet publie des probabilités et ne garantit aucun gain. Données : football-data.co.uk, openfootball. Scores en direct : ESPN, sans garantie.</footer>
+  <section data-view="compte" hidden>
+    <div>
+      <h1>Mon compte</h1>
+      <p class="lead">Un compte gratuit garde votre journal de paris en ligne, pour le retrouver sur tous vos appareils. Réservé aux adultes.</p>
+    </div>
+    <div class="card" id="acc-box"></div>
+  </section>
+
+  <section data-view="publicite" hidden>
+    <div>
+      <h1>Annoncez sur kcbet</h1>
+      <p class="lead">Des parieurs consultent kcbet chaque jour pour les pronostics, le direct et les résultats. Placez votre marque devant eux.</p>
+    </div>
+    <div class="card">
+      <h2>Emplacements</h2>
+      <ul class="plain">
+        <li><b>Bannière du haut</b> : sous le match en vedette, sur la page des pronostics.</li>
+        <li><b>Dans la liste des matchs</b> : entre les championnats, sur ordinateur et téléphone.</li>
+        <li><b>Colonne des compétitions</b> : sur ordinateur, visible pendant toute la navigation.</li>
+        <li><b>Bas des pages</b> : Résultats, Preuves et Journal.</li>
+      </ul>
+      <p class="lead">Tarifs à la semaine ou au mois, sur demande. Les annonces de paris doivent respecter la loi de votre pays et viser uniquement les adultes.</p>
+    </div>
+    <div class="card"><h2>Contact</h2><div id="p-contact"></div></div>
+  </section>
+
+  <section data-view="confidentialite" hidden>
+    <div><h1>Confidentialité</h1></div>
+    <div class="card">
+      <ul class="plain">
+        <li><b>Sans compte</b> : kcbet n'enregistre rien sur vous. Vos préférences, votre ticket et votre journal restent dans votre navigateur.</li>
+        <li><b>Avec un compte</b> : nous enregistrons votre adresse e-mail, votre mot de passe chiffré et votre journal de paris, chez notre hébergeur de comptes Supabase. Ces données servent uniquement à vous connecter et à retrouver votre journal.</li>
+        <li><b>Jamais revendues</b> : vos données ne sont ni vendues ni cédées à des annonceurs.</li>
+        <li><b>Effacement</b> : vous pouvez effacer vos paris en ligne depuis Mon compte. Pour supprimer tout le compte, écrivez au contact de la page Publicité depuis votre adresse e-mail.</li>
+        <li><b>Publicité</b> : si des publicités Google s'affichent, Google peut utiliser des cookies pour les choisir.</li>
+        <li><b>Scores en direct</b> : votre navigateur les lit directement chez ESPN, qui reçoit donc votre adresse IP.</li>
+      </ul>
+    </div>
+  </section>
+
+  <div data-ad="bottom"></div>
+  <footer>Réservé aux adultes. Le pari sportif peut faire perdre de l'argent et créer une dépendance : ne misez que ce que vous pouvez perdre, et ne cherchez jamais à vous refaire. kcbet publie des probabilités et ne garantit aucun gain. Données : football-data.co.uk, openfootball. Scores en direct : ESPN, sans garantie. <a href="#publicite">Publicité</a> · <a href="#confidentialite">Confidentialité</a></footer>
 </div>
 
 <script>
 fetch("data/app.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
-  window.KC=d;["i18n.js","markets.js","app.js","live.js","hero.js"].forEach(function(u){var s=document.createElement("script");s.src=u+"?v="+encodeURIComponent(d.generated);s.async=false;document.body.appendChild(s)});
+  window.KC=d;["config.js","i18n.js","markets.js","app.js","live.js","hero.js","ads.js","account.js"].forEach(function(u){var s=document.createElement("script");s.src=u+"?v="+encodeURIComponent(d.generated);s.async=false;document.body.appendChild(s)});
 }).catch(function(){var h=document.querySelector("h1");if(h)h.textContent="Données indisponibles pour le moment. Réessayez dans un instant."});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(function(){});
 </script>

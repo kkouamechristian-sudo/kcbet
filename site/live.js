@@ -18,7 +18,7 @@ function parseEvent(e,slug){const c=e.competitions&&e.competitions[0];if(!c)retu
   ev.fx=findFixture(lg,ev.home,ev.away,ev.date);return ev}
 function liveState(ev){const m=parseInt(ev.clock,10)||0,ht=/HALFTIME/.test(ev.name),min=ht?45:ev.period>=2?Math.max(46,m):m;
   return{min,left:Math.max(.005,(94-min)/94),hg:ev.hg,ag:ev.ag,redH:ev.redH,redA:ev.redA}}
-function clockLabel(ev){if(ev.state==="pre")return new Date(ev.date).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});if(ev.state==="post")return/POSTPONED|CANCELED|ABANDONED/.test(ev.name)?"Reporté":"Fin";if(/HALFTIME/.test(ev.name))return"MT";return ev.clock.replace("'","")+"'"}
+function clockLabel(ev){if(ev.state==="pre")return new Date(ev.date).toLocaleTimeString(LOC,{hour:"2-digit",minute:"2-digit"});if(ev.state==="post")return/POSTPONED|CANCELED|ABANDONED/.test(ev.name)?"Reporté":"Fin";if(/HALFTIME/.test(ev.name))return"MT";return ev.clock.replace("'","")+"'"}
 function liveProbs(ev){if(!ev.fx||!ev.fx.lam||ev.state!=="in")return null;return result1x2(liveCells(ev.fx,liveState(ev)).cells)}
 function marketsHTML(f,st){return allMarkets(f,st).map((g,i)=>`<details class="mk"${i===0?" open":""}><summary>${esc(g.t)}</summary><div class="scroll"><table><tbody>${g.rows.map(([l,p])=>`<tr><td>${esc(l)}</td><td>${pct(p,p<.1?1:0)}</td><td>${p>.002?nf(1/p):"–"}</td>${st?"":`<td><button class="ghost" type="button" data-mk="${f.key}" data-l="${esc(g.t+" : "+l)}" data-p="${p}">Au ticket</button></td>`}</tr>`).join("")}</tbody></table></div></details>`).join("")}
 function leagueName(ev){return ev.lg?(LG[ev.lg]||(typeof D!=="undefined"&&ev.lg)):CUPS[ev.slug]||ev.slug}
@@ -27,7 +27,7 @@ function renderLive(){
   const b=document.querySelector('[data-nav="direct"]');if(b)b.textContent=sets.in.length?`Direct (${sets.in.length})`:"Direct";
   if(!V.chosen)V.tab=sets.in.length?"in":"pre";
   chips($("l-kind"),[["in",`En direct ${sets.in.length}`],["pre",`À venir ${sets.pre.length}`],["post",`Terminés ${sets.post.length}`]],V.tab,v=>{V.tab=v;V.chosen=true;renderLive()});
-  $("l-status").textContent=V.err&&!all.length?"Scores en direct indisponibles pour le moment. La page réessaie toute seule.":V.at?`Mis à jour à ${new Date(V.at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}. Actualisation automatique.`:"Chargement des scores…";
+  $("l-status").textContent=V.err&&!all.length?"Scores en direct indisponibles pour le moment. La page réessaie toute seule.":V.at?`Mis à jour à ${new Date(V.at).toLocaleTimeString(LOC,{hour:"2-digit",minute:"2-digit",second:"2-digit"})}. Actualisation automatique.`:"Chargement des scores…";
   const L=sets[V.tab].sort((a,b)=>String(leagueName(a)).localeCompare(String(leagueName(b)),"fr")||a.date.localeCompare(b.date)),G=new Map();L.forEach(e=>{const k=leagueName(e);if(!G.has(k))G.set(k,[]);G.get(k).push(e)});
   let h="";
   for(const[k,ms]of G){h+=`<div class="group"><span>${esc(k)}</span><small>${ms.length}</small></div>`;
@@ -50,7 +50,7 @@ async function tick(){if(V.busy||document.hidden)return;V.busy=true;
   for(let i=0;i<list.length;i+=5){const r=await Promise.allSettled(list.slice(i,i+5).map(pull));r.forEach(x=>x.status==="fulfilled"?ok++:bad++)}
   if(fullRun)V.full=Date.now();V.err=!ok&&bad>0;if(ok)V.at=Date.now();V.busy=false;
   window.LIVE=new Map();for(const e of V.events.values())if(e.fx)window.LIVE.set(e.fx.key,e);
-  renderLive();renderTicker();
+  renderLive();renderTicker();if(typeof renderHero==="function")renderHero();
   const a=document.activeElement;if(!$("m-list").closest("section").hidden&&!(a&&a.closest&&a.closest("#m-list")&&a.tagName==="INPUT"))renderMatches()}
 $("l-list").addEventListener("click",e=>{const b=e.target.closest("[data-ev]");if(b){const k=b.dataset.ev;V.open.has(k)?V.open.delete(k):V.open.add(k);renderLive();return}
   const m=e.target.closest("[data-mk]");if(m)addMarket(m.dataset.mk,m.dataset.l,+m.dataset.p)});

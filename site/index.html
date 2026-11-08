@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="style.css">
 <style>html,body{margin:0}</style>
+<script>try{var t=localStorage.getItem("kc-theme");if(!t&&matchMedia("(prefers-color-scheme: light)").matches)t="light";document.documentElement.setAttribute("data-theme",t||"dark")}catch(e){document.documentElement.setAttribute("data-theme","dark")}</script>
 </head>
 <body>
 <div class="wrap">
@@ -27,6 +28,7 @@
       <a href="#preuves" data-nav="preuves">Preuves</a>
       <a href="#journal" data-nav="journal">Journal</a>
     </nav>
+    <div class="tools"><button class="tool" id="t-lang" type="button">EN</button><button class="tool" id="t-theme" type="button"></button></div>
     <div class="ticker" id="ticker" hidden><div class="ticker-move" id="ticker-move"></div></div>
   </header>
 
@@ -35,6 +37,7 @@
       <h1>Pronostics du jour</h1>
       <p class="lead" id="m-lead"></p>
     </div>
+    <section class="hero" id="hero" aria-label="Match en vedette" hidden></section>
     <div id="m-stale" class="warnbox" hidden></div>
     <div class="chips strip" id="f-day" role="group" aria-label="Jour"></div>
     <div class="split">
@@ -151,7 +154,7 @@
 
 <script>
 fetch("data/app.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
-  window.KC=d;["markets.js","app.js","live.js"].forEach(function(u){var s=document.createElement("script");s.src=u+"?v="+encodeURIComponent(d.generated);s.async=false;document.body.appendChild(s)});
+  window.KC=d;["i18n.js","markets.js","app.js","live.js","hero.js"].forEach(function(u){var s=document.createElement("script");s.src=u+"?v="+encodeURIComponent(d.generated);s.async=false;document.body.appendChild(s)});
 }).catch(function(){var h=document.querySelector("h1");if(h)h.textContent="Données indisponibles pour le moment. Réessayez dans un instant."});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(function(){});
 </script>

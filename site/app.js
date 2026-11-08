@@ -123,21 +123,23 @@ $("t-legs").addEventListener("input",e=>{const n=e.target.dataset.leg;if(n==null
 $("t-legs").addEventListener("click",e=>{const b=e.target.closest("[data-del]");if(!b)return;if(example)example=false;S.ticket.splice(+b.dataset.del,1);saveTicket();renderMatches()});
 
 /* ---------- Generateur de ticket ---------- */
-const GEN_TYPES={all:["Résultat","Double chance","Remboursé si nul","Total de buts","Buts par équipe","Les deux équipes marquent","Handicap"],res:["Résultat","Double chance","Remboursé si nul"],goals:["Total de buts","Buts par équipe"],btts:["Les deux équipes marquent","Clean sheet"]};
+const genTypes=()=>[...document.querySelectorAll("#g-types [data-gt]")].filter(b=>b.getAttribute("aria-pressed")==="true").map(b=>b.dataset.gt);
+$("g-types").addEventListener("click",e=>{const b=e.target.closest("[data-gt]");if(!b)return;const v=b.dataset.gt;const all=[...document.querySelectorAll("#g-types [data-gt]")].filter(x=>!x.dataset.gt.startsWith("__"));if(v==="__all")all.forEach(x=>x.setAttribute("aria-pressed","true"));else if(v==="__none")all.forEach(x=>x.setAttribute("aria-pressed","false"));else b.setAttribute("aria-pressed",b.getAttribute("aria-pressed")==="true"?"false":"true")});
 let genUsed=new Set();
 function genTicket(again){
-  const target=+$("g-target").value,period=+$("g-period").value,types=GEN_TYPES[$("g-types").value],max=+$("g-max").value,scope=$("g-scope").value;
+  const target=+$("g-target").value,period=+$("g-period").value,types=genTypes(),max=+$("g-max").value,scope=$("g-scope").value;
+  if(!types.length){$("g-msg").textContent="Cochez au moins un type de pari.";return}
   if(!again)genUsed=new Set();
   const t0=new Date();t0.setHours(0,0,0,0);const now=Date.now(),cands=[];
   for(const f of D.fixtures){const ko=new Date(f.ko).getTime();if(ko<now+6e5||(ko-t0)/864e5>=period+1)continue;
     if(scope==="top"&&!f.top)continue;if(scope==="clubs"&&f.intl)continue;if(genUsed.has(f.key)||!f.lam)continue;
     const rows=[];
-    for(const g of allMarkets(f))if(types.includes(g.t))g.rows.forEach(([l,p],k)=>{if(p<.3||p>.92)return;
+    for(const g of allMarkets(f))if(types.includes(g.t))g.rows.forEach(([l,p],k)=>{if(p<.3||p>.96)return;
       let o=null;if(g.t==="Résultat"&&f.odds)o=f.odds[k];if(g.t==="Total de buts"&&f.ao25&&/2,5/.test(l))o=/^Plus/.test(l)?f.ao25:f.au25;
-      const est=!o;if(est)o=Math.max(1.01,(1/p)*.93);if(o<1.1)return;rows.push({f,label:g.t+" : "+l,p,o,est})});
+      const est=!o;if(est)o=Math.max(1.01,(1/p)*.93);if(o<1.04)return;rows.push({f,label:g.t+" : "+l,p,o,est})});
     if(rows.length)cands.push(rows)}
   let plan=null;
-  for(let n=Math.min(2,max);n<=max;n++){const q=Math.pow(target,1/n),per=[];
+  for(let n=max;n>=Math.min(2,max)&&!plan;n--){const q=Math.pow(target,1/n),per=[];
     for(const rows of cands){let b=null;for(const r of rows)if(r.o>=q&&(!b||r.p+(r.est?0:.01)>b.p+(b.est?0:.01)))b=r;if(b)per.push(b)}
     per.sort((x,y)=>y.p-x.p);const legs=[],perLg={};
     for(const c of per){if(legs.length>=n)break;if((perLg[c.f.lg]||0)>=2)continue;legs.push(c);perLg[c.f.lg]=(perLg[c.f.lg]||0)+1}
@@ -148,7 +150,7 @@ function genTicket(again){
   legs.forEach(c=>genUsed.add(c.f.key));
   S.ticket=legs.map(c=>({key:c.f.key,m:c.label,p:c.p,o:+c.o.toFixed(2),est:c.est}));example=false;saveTicket();renderMatches();
   const{p,o}=ticketCalc(),ne=legs.filter(c=>c.est).length;
-  $("g-msg").innerHTML=`${legs.length} sélections sur ${legs.length} matchs différents, cote ${nf(o)}, <b>${pct(p,1)}</b> de chances que tout passe.${ne?` ${ne} cote${ne>1?"s":""} estimée${ne>1?"s":""} à partir du juste prix : remplacez-${ne>1?"les par celles":"la par celle"} de votre bookmaker.`:""}`;
+  $("g-msg").innerHTML=`${legs.length<max?`Seulement ${legs.length} sélections possibles pour cette cote. `:""}${odds>target*1.5?"La cote dépasse nettement la cote visée : les paris de ces types ont des cotes trop élevées pour autant de sélections. ":""}${legs.length} sélections sur ${legs.length} matchs différents, cote ${nf(o)}, <b>${pct(p,1)}</b> de chances que tout passe.${ne?` ${ne} cote${ne>1?"s":""} estimée${ne>1?"s":""} à partir du juste prix : remplacez-${ne>1?"les par celles":"la par celle"} de votre bookmaker.`:""}`;
 }
 $("g-run").addEventListener("click",()=>genTicket(false));
 $("g-again").addEventListener("click",()=>genTicket(true));

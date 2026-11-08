@@ -148,7 +148,7 @@ function genTicket(again){
   legs.forEach(c=>genUsed.add(c.f.key));
   S.ticket=legs.map(c=>({key:c.f.key,m:c.label,p:c.p,o:+c.o.toFixed(2),est:c.est}));example=false;saveTicket();renderMatches();
   const{p,o}=ticketCalc(),ne=legs.filter(c=>c.est).length;
-  $("g-msg").innerHTML=`${legs.length} sélections sur ${legs.length} matchs différents, cote ${nf(o)}, <b>${pct(p,1)}</b> de chances que tout passe.${ne?` ${ne} cote${ne>1?"s":""} estimée${ne>1?"s":""} à partir du juste prix : remplacez-les par celles de votre bookmaker.`:""}`;
+  $("g-msg").innerHTML=`${legs.length} sélections sur ${legs.length} matchs différents, cote ${nf(o)}, <b>${pct(p,1)}</b> de chances que tout passe.${ne?` ${ne} cote${ne>1?"s":""} estimée${ne>1?"s":""} à partir du juste prix : remplacez-${ne>1?"les par celles":"la par celle"} de votre bookmaker.`:""}`;
 }
 $("g-run").addEventListener("click",()=>genTicket(false));
 $("g-again").addEventListener("click",()=>genTicket(true));

@@ -9,6 +9,9 @@ from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import leagues as L
+import espn, intl, paris
+NY = ZoneInfo("America/New_York")
+INTL_CSV = "https://raw.githubusercontent.com/martj42/international_results/master/results.csv"
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SITE_DATA = os.path.join(os.path.dirname(HERE), "site", "data")
@@ -96,14 +99,15 @@ def register(reg, fixtures, now):
         hh, mm = (f["time"] or "12:00").split(":")[:2]
         ko = d.replace(hour=int(hh), minute=int(mm), tzinfo=LONDON).astimezone(timezone.utc)
         f["id"] = mid(f)
-        f["ko"] = ko.isoformat()
+        if not f.get("intl"):
+            f["ko"] = ko.isoformat()
         if f["far"] or f["id"] in known or ko <= now:
             continue
         i = max(range(3), key=lambda k: f["market"][k])
         reg.append(dict(id=f["id"], lg=f["lg"], league=f["league"], country=f["country"], date=f["date"], ko=f["ko"], home=f["home"], away=f["away"],
                         created=now.isoformat(), big=f["market"][i] >= .73,
                         pick=dict(i=i, label=[f["home"], "Nul", f["away"]][i], p=f["market"][i], odds=f["odds"][i]),
-                        signal=f["signal"], dc=f["model"], result=None, void=False))
+                        signal=f["signal"], sure=f.get("sure"), dc=f["model"], result=None, void=False))
         added += 1
     return added
 
@@ -127,12 +131,44 @@ def settle(reg, data, now):
             continue
         s = rows.get((x["lg"], pdate(x["date"]).date(), x["home"], x["away"]))
         if s:
-            hg, ag = s
-            res = 0 if hg > ag else 2 if ag > hg else 1
-            win = {"1": res == 0, "X": res == 1, "2": res == 2, "Plus de 2,5 buts": hg + ag > 2, "Moins de 2,5 buts": hg + ag < 3}
-            x["result"] = dict(hg=hg, ag=ag, pick=res == x["pick"]["i"], signal=win[x["signal"]["label"]] if x["signal"] else None)
+            apply(x, s[0], s[1], "football-data")
             n += 1
-        elif now - datetime.fromisoformat(x["ko"]) > timedelta(days=14):
+    return n
+
+
+def apply(x, hg, ag, src):
+    res = 0 if hg > ag else 2 if ag > hg else 1
+    win = {"1": res == 0, "X": res == 1, "2": res == 2, "Plus de 2,5 buts": hg + ag > 2, "Moins de 2,5 buts": hg + ag < 3}
+    sure = x.get("sure")
+    x["result"] = dict(hg=hg, ag=ag, src=src, pick=res == x["pick"]["i"], signal=win[x["signal"]["label"]] if x["signal"] else None,
+                       sure=paris.wins(sure["code"], hg, ag) if sure else None)
+
+
+def settle_espn(reg, now):
+    """Scores finaux ESPN pour les matchs termines que la source principale n'a pas encore publies."""
+    cache, n = {}, 0
+    for x in reg:
+        if x["result"] or x["void"] or x["lg"] not in L.ESPN:
+            continue
+        ko = datetime.fromisoformat(x["ko"])
+        if now - ko < timedelta(hours=2, minutes=30):
+            continue
+        slug, best, bs = L.ESPN[x["lg"]], None, 0
+        for day in {ko.astimezone(NY).strftime("%Y%m%d"), ko.strftime("%Y%m%d")}:
+            if (slug, day) not in cache:
+                try:
+                    cache[(slug, day)] = espn.events(espn.scoreboard(slug, day))
+                except Exception:
+                    cache[(slug, day)] = []
+            for e in cache[(slug, day)]:
+                ok, sc = espn.same_match(x["home"], x["away"], e["home"], e["away"])
+                close = abs((datetime.fromisoformat(e["date"].replace("Z", "+00:00")) - ko).total_seconds()) < 12 * 3600
+                if ok and close and e["done"] and "FULL_TIME" in e["name"] and sc > bs:
+                    best, bs = e, sc
+        if best:
+            apply(x, best["hg"], best["ag"], "espn")
+            n += 1
+        elif now - ko > timedelta(days=14):
             x["void"] = True  # match reporte ou annule : exclu des comptes, reste visible
     return n
 
@@ -150,6 +186,8 @@ def stats(reg):
     out = dict(pick=stat([(x["pick"]["odds"], x["result"]["pick"]) for x in done]),
                signal=stat([(x["signal"]["odds"], x["result"]["signal"]) for x in done if x["signal"]]),
                big=stat([(x["pick"]["odds"], x["result"]["pick"]) for x in done if x["big"]]), leagues=[])
+    su = [x for x in done if x.get("sure") and x["result"].get("sure") is not None]
+    out["sure"] = dict(stat([(x["sure"]["odds"] or 1 / x["sure"]["p"], x["result"]["sure"]) for x in su]), expected=sum(x["sure"]["p"] for x in su) / len(su) if su else None)
     for lg in sorted({x["league"] for x in done}):
         out["leagues"].append(dict(league=lg, **stat([(x["pick"]["odds"], x["result"]["pick"]) for x in done if x["league"] == lg])))
     return out
@@ -192,6 +230,19 @@ def main():
                 fetch_json(f"{CAL}/{dossier}/{nom}.json", os.path.join(tmp, f"CAL_{lg}.json"))
             except (urllib.error.URLError, ValueError):
                 print("calendrier indisponible", lg)
+        try:
+            with urllib.request.urlopen(urllib.request.Request(INTL_CSV, headers=UA), timeout=60) as r, open(os.path.join(tmp, "intl_results.csv"), "wb") as f:
+                f.write(r.read())
+            for slug in intl.COMPS:
+                for k in range(22):
+                    day = (now + timedelta(days=k)).strftime("%Y%m%d")
+                    try:
+                        with open(os.path.join(tmp, f"INTL_{slug}_{day}.json"), "w", encoding="utf-8") as f:
+                            json.dump(espn.scoreboard(slug, day), f)
+                    except Exception:
+                        pass
+        except (urllib.error.URLError, OSError) as e:
+            print("selections indisponibles", e)
         iso = email.utils.parsedate_to_datetime(fetched).isoformat() if fetched else now.isoformat()
         out = os.path.join(tmp, "model.json")
         subprocess.run([sys.executable, os.path.join(HERE, "model.py"), tmp, out, iso, ",".join(seasons)],
@@ -202,7 +253,7 @@ def main():
             raise RuntimeError("donnees insuffisantes, mise a jour annulee")
         reg = load_json(REG, [])
         added = register(reg, d["fixtures"], now)
-        settled = settle(reg, tmp, now)
+        settled = settle(reg, tmp, now) + settle_espn(reg, now)
         d["generated"] = now.isoformat()
         d["registre"] = sorted(reg, key=lambda x: x["ko"], reverse=True)[:600]
         d["suivi"] = stats(reg)

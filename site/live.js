@@ -1,6 +1,6 @@
 /* Scores et pronostics en direct, lus depuis le navigateur du visiteur. */
 const ESPN="https://site.api.espn.com/apis/site/v2/sports/soccer/";
-const SLUGS={E0:"eng.1",E1:"eng.2",E2:"eng.3",E3:"eng.4",EC:"eng.5",SP1:"esp.1",SP2:"esp.2",D1:"ger.1",D2:"ger.2",I1:"ita.1",I2:"ita.2",F1:"fra.1",F2:"fra.2",SC0:"sco.1",SC1:"sco.2",SC2:"sco.3",SC3:"sco.4",N1:"ned.1",B1:"bel.1",P1:"por.1",T1:"tur.1",G1:"gre.1",ARG:"arg.1",AUT:"aut.1",BRA:"bra.1",CHN:"chn.1",DNK:"den.1",FIN:"fin.1",IRL:"irl.1",JPN:"jpn.1",MEX:"mex.1",NOR:"nor.1",ROU:"rou.1",SWE:"swe.1",SWZ:"sui.1",USA:"usa.1"};
+const SLUGS={E0:"eng.1",E1:"eng.2",E2:"eng.3",E3:"eng.4",EC:"eng.5",SP1:"esp.1",SP2:"esp.2",D1:"ger.1",D2:"ger.2",I1:"ita.1",I2:"ita.2",F1:"fra.1",F2:"fra.2",SC0:"sco.1",SC1:"sco.2",SC2:"sco.3",SC3:"sco.4",N1:"ned.1",B1:"bel.1",P1:"por.1",T1:"tur.1",G1:"gre.1",ARG:"arg.1",AUT:"aut.1",BRA:"bra.1",CHN:"chn.1",DNK:"den.1",FIN:"fin.1",IRL:"irl.1",JPN:"jpn.1",MEX:"mex.1",NOR:"nor.1",ROU:"rou.1",SWE:"swe.1",SWZ:"sui.1",USA:"usa.1",INT_UNL:"uefa.nations",INT_CANQ:"caf.nations_qual",INT_CNL:"concacaf.nations.league",INT_AMI:"fifa.friendly",INT_WCQ_CAF:"fifa.worldq.caf",INT_WCQ_UEFA:"fifa.worldq.uefa"};
 const CUPS={"uefa.champions":"Europe · Ligue des champions","uefa.europa":"Europe · Ligue Europa","uefa.europa.conf":"Europe · Ligue Conférence","caf.champions":"Afrique · Ligue des champions CAF","caf.confed":"Afrique · Coupe de la Confédération"};
 const SLUG2LG=Object.fromEntries(Object.entries(SLUGS).map(([k,v])=>[v,k]));
 const V={events:new Map(),open:new Set(),tab:"",err:false,at:0,full:0,timer:null,busy:false};
@@ -8,7 +8,7 @@ const normName=s=>String(s).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase(
 function bi(s){const o=new Set();const t=s.replace(/ /g,"");for(let i=0;i<t.length-1;i++)o.add(t.slice(i,i+2));return o}
 function sim(a,b){a=normName(a);b=normName(b);if(!a||!b)return 0;if(a===b||a.includes(b)||b.includes(a))return 1;const x=bi(a),y=bi(b);let n=0;x.forEach(v=>{if(y.has(v))n++});return x.size+y.size?2*n/(x.size+y.size):0}
 function findFixture(lg,home,away,date){if(!lg)return null;const day=new Date(date).getTime();let best=null,bs=0;
-  for(const f of D.fixtures){if(f.lg!==lg||f.far)continue;if(Math.abs(new Date(f.ko).getTime()-day)>864e5)continue;const a=sim(f.home,home),b=sim(f.away,away),s=a+b;
+  for(const f of D.fixtures){if(f.lg!==lg||(f.far&&!f.intl))continue;if(Math.abs(new Date(f.ko).getTime()-day)>864e5)continue;const a=sim(f.home,home),b=sim(f.away,away),s=a+b;
     /* une equipe ne joue qu'une fois par jour : un nom sur deux tres proche suffit dans le meme championnat */
     if((Math.max(a,b)>=.7||Math.min(a,b)>=.5)&&s>bs){bs=s;best=f}}
   return best}
@@ -43,12 +43,15 @@ function renderLive(){
 async function pull(slug){const r=await fetch(ESPN+slug+"/scoreboard");if(!r.ok)throw new Error(slug);const d=await r.json();
   for(const[k,v]of V.events)if(v.slug===slug)V.events.delete(k);
   for(const e of d.events||[]){const ev=parseEvent(e,slug);if(ev)V.events.set(ev.id,ev)}}
-function slugsToday(){const now=Date.now(),set=new Set(Object.keys(CUPS));for(const f of D.fixtures){if(f.far||!SLUGS[f.lg])continue;if(Math.abs(new Date(f.ko).getTime()-now)<36*36e5)set.add(SLUGS[f.lg])}return[...set]}
+function slugsToday(){const now=Date.now(),set=new Set(Object.keys(CUPS));for(const f of D.fixtures){if((f.far&&!f.intl)||!SLUGS[f.lg])continue;if(Math.abs(new Date(f.ko).getTime()-now)<36*36e5)set.add(SLUGS[f.lg])}return[...set]}
 function activeSlugs(){const now=Date.now(),s=new Set();for(const e of V.events.values())if(e.state==="in"||(e.state==="pre"&&new Date(e.date).getTime()-now<6e5))s.add(e.slug);return[...s]}
 async function tick(){if(V.busy||document.hidden)return;V.busy=true;
   const fullRun=Date.now()-V.full>3e5,list=fullRun?slugsToday():activeSlugs();let ok=0,bad=0;
   for(let i=0;i<list.length;i+=5){const r=await Promise.allSettled(list.slice(i,i+5).map(pull));r.forEach(x=>x.status==="fulfilled"?ok++:bad++)}
-  if(fullRun)V.full=Date.now();V.err=!ok&&bad>0;if(ok)V.at=Date.now();V.busy=false;renderLive()}
+  if(fullRun)V.full=Date.now();V.err=!ok&&bad>0;if(ok)V.at=Date.now();V.busy=false;
+  window.LIVE=new Map();for(const e of V.events.values())if(e.fx)window.LIVE.set(e.fx.key,e);
+  renderLive();
+  const a=document.activeElement;if(!$("m-list").closest("section").hidden&&!(a&&a.closest&&a.closest("#m-list")&&a.tagName==="INPUT"))renderMatches()}
 $("l-list").addEventListener("click",e=>{const b=e.target.closest("[data-ev]");if(b){const k=b.dataset.ev;V.open.has(k)?V.open.delete(k):V.open.add(k);renderLive();return}
   const m=e.target.closest("[data-mk]");if(m)addMarket(m.dataset.mk,m.dataset.l,+m.dataset.p)});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)tick()});

@@ -71,6 +71,19 @@
       <h1>Votre combiné, sans maquillage</h1>
       <p class="lead">Chaque sélection ajoutée multiplie la cote, mais aussi la marge du bookmaker. Remplacez les cotes par celles de votre bookmaker.</p>
     </div>
+    <div class="card">
+      <h2>Générer un ticket</h2>
+      <p class="lead">Le générateur choisit les paris les plus probables, un seul par match et au plus deux par championnat, jusqu'à la cote visée. Il affiche la vraie chance de gain.</p>
+      <div class="formgrid">
+        <label class="field">Cote visée<select id="g-target"><option value="1.5">1,5</option><option value="2" selected>2</option><option value="3">3</option><option value="5">5</option><option value="10">10</option></select></label>
+        <label class="field">Période<select id="g-period"><option value="0">Aujourd'hui</option><option value="1" selected>Aujourd'hui et demain</option><option value="2">3 jours</option><option value="6">7 jours</option></select></label>
+        <label class="field">Types de paris<select id="g-types"><option value="all">Tous</option><option value="res">Résultat et double chance</option><option value="goals">Nombre de buts</option><option value="btts">Les deux marquent</option></select></label>
+        <label class="field">Sélections au plus<select id="g-max"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option><option>8</option></select></label>
+        <label class="field">Compétitions<select id="g-scope"><option value="all">Toutes</option><option value="clubs">Clubs seulement</option><option value="top">5 grands championnats</option></select></label>
+      </div>
+      <div class="chips"><button class="act" id="g-run" type="button">Générer le ticket</button><button class="ghost" id="g-again" type="button">Autre ticket</button></div>
+      <p class="verdict" id="g-msg" role="status"></p>
+    </div>
     <div id="t-example" class="note" hidden></div>
     <div class="card" id="t-legs"></div>
     <div class="figures" id="t-figs"></div>

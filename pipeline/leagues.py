@@ -102,3 +102,9 @@ def team_rates(rows, n=15):
             if m["cards"] is not None:
                 k.setdefault(t, []).append(m["cards"])
     return {t: sum(v[-n:]) / len(v[-n:]) for t, v in c.items()}, {t: sum(v[-n:]) / len(v[-n:]) for t, v in k.items()}
+
+
+ESPN = {"E0": "eng.1", "E1": "eng.2", "E2": "eng.3", "E3": "eng.4", "EC": "eng.5", "SP1": "esp.1", "SP2": "esp.2", "D1": "ger.1", "D2": "ger.2",
+        "I1": "ita.1", "I2": "ita.2", "F1": "fra.1", "F2": "fra.2", "SC0": "sco.1", "SC1": "sco.2", "SC2": "sco.3", "SC3": "sco.4", "N1": "ned.1",
+        "B1": "bel.1", "P1": "por.1", "T1": "tur.1", "G1": "gre.1", "ARG": "arg.1", "AUT": "aut.1", "BRA": "bra.1", "CHN": "chn.1", "DNK": "den.1",
+        "FIN": "fin.1", "IRL": "irl.1", "JPN": "jpn.1", "MEX": "mex.1", "NOR": "nor.1", "ROU": "rou.1", "SWE": "swe.1", "SWZ": "sui.1", "USA": "usa.1"}

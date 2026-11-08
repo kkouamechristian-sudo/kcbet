@@ -418,11 +418,17 @@ def main():
         fx.append(dict(lam=[p["lh"], p["la"]], rho=float(dcm[lg].rho), cc=cc(r), lg=lg, league=nom, country=pays, top=lg in L.TOP5, far=True, date=r["Date"], time=r["Time"], home=r["home"], away=r["away"],
                        odds=None, max=None, market=p["pk"], model=p["pk"], xg=[p["lh"], p["la"]], o25=p["o25"], btts=p["btts"], score=p["score"],
                        signal=None, thin=min(seen[lg][r["home"]], seen[lg][r["away"]]) < 10, ao25=None, au25=None))
+    import paris, intl
+    for f in fx:
+        f["sure"] = paris.sure(f["lam"][0], f["lam"][1], f["rho"], f["home"], f["away"], odds=f["odds"], ou=(f["ao25"], f["au25"]))
+    ifx, itest = intl.fixtures(DATA, today)
+    fx += ifx
+    print("selections", len(ifx), itest)
     fx.sort(key=lambda f: (date(f["date"]), f["time"]))
     lab = lambda z: f"20{z[:2]}-{z[2:]}"
     with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "dc_test.json"), encoding="utf-8") as f:
         dc = json.load(f)
-    out = dict(dc=dc, fetched=FETCHED, test_label=lab(SEASONS[-1]), first_label=lab(SEASONS[0]), mid_label=lab(SEASONS[1]), first_eval=f"20{SEASONS[1][:2]}", weight=b, metrics=res, table=table, calib=calib, fixtures=fx, last_result=now.strftime("%Y-%m-%d"),
+    out = dict(dc=dc, intl_test=itest, fetched=FETCHED, test_label=lab(SEASONS[-1]), first_label=lab(SEASONS[0]), mid_label=lab(SEASONS[1]), first_eval=f"20{SEASONS[1][:2]}", weight=b, metrics=res, table=table, calib=calib, fixtures=fx, last_result=now.strftime("%Y-%m-%d"),
                n_matches=len(ms), n_pred=len(preds), n_xg=sum(m["hx"] is not None for m in ms),
                params=dict(half_life=HALF_LIFE, xg_w=XG_W, prior_k=PRIOR_K, rho=RHO))
     with open(OUT, "w", encoding="utf-8") as f:

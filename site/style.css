@@ -142,3 +142,12 @@ ul.plain{margin:0;padding-left:18px;display:grid;gap:6px;max-width:70ch}
 .mk td{white-space:normal}
 .mk td:first-child{font-size:13.5px}
 .mk button.ghost{font-size:12px;padding:3px 7px}
+.chip.empty{opacity:.55}
+.surec{display:none;justify-items:end;text-align:right;gap:1px;max-width:150px;min-width:0}
+.surec b{font-weight:600;color:var(--warn);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;font-size:13px}
+.surec small{font:500 12px var(--mono);color:var(--muted)}
+.match.live .mhead{background:linear-gradient(90deg,rgba(25,195,125,.08),transparent 40%)}
+@media (min-width:760px){.surec{display:grid}.mhead{grid-template-columns:44px minmax(0,1fr) auto auto auto}.mhead:has(.scoreb){grid-template-columns:44px minmax(0,1fr) auto auto auto}}
+@media (max-width:759px){.surec{display:flex;grid-column:2 / -1;gap:6px;align-items:baseline;justify-content:flex-start;text-align:left;max-width:none;margin-top:-4px}.surec::before{content:"Plus sûr :";color:var(--muted);font-size:12px}}
+.surec small{white-space:nowrap}
+@media (max-width:759px){.surec b{min-width:0;flex:0 1 auto}}

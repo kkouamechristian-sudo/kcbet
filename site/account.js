@@ -3,7 +3,8 @@ const ACC={sb:null,user:null,ready:false,mode:"signup",msg:""};
 const accOn=()=>!!(window.CFG&&CFG.supabaseUrl&&CFG.supabaseAnonKey);
 function accRender(){
   const box=$("acc-box"),btn=$("t-acc");
-  if(btn)btn.textContent=ACC.user?T("Mon compte","My account"):T("Connexion","Sign in");
+  if(btn)btn.textContent=ACC.user?T("Mon compte","My account"):T("S'inscrire","Sign up");
+  const j=$("join");if(j){let hid=false;try{hid=localStorage.getItem("kc-join-x")==="1"}catch(e){}j.hidden=!!ACC.user||hid}
   if(!accOn()){box.innerHTML=`<p class="lead">${T("Les inscriptions ouvrent très bientôt. Vous pourrez créer un compte gratuit pour retrouver votre journal de paris sur tous vos appareils.","Sign-ups open very soon. You will be able to create a free account to find your betting log on all your devices.")}</p>`;return}
   if(!ACC.ready){box.innerHTML=`<p class="lead">${T("Chargement…","Loading…")}</p>`;return}
   const m=ACC.msg?`<p class="verdict" role="status">${ACC.msg}</p>`:"";
@@ -51,4 +52,5 @@ $("acc-box").addEventListener("submit",async e=>{e.preventDefault();const sb=ACC
   else if(ACC.mode==="forgot"){r=await sb.auth.resetPasswordForEmail(mail,{redirectTo:back});ACC.msg=r.error?esc(r.error.message):T("Si un compte existe, un lien de réinitialisation vient d'être envoyé.","If an account exists, a reset link has just been sent.")}
   else if(ACC.mode==="recover"){r=await sb.auth.updateUser({password:pass});ACC.msg=r.error?esc(r.error.message):T("Mot de passe modifié.","Password changed.");if(!r.error)ACC.mode="login"}
   accRender()});
+$("join").addEventListener("click",e=>{const b=e.target.closest("[data-join]");if(!b)return;if(b.dataset.join==="x"){$("join").hidden=true;try{localStorage.setItem("kc-join-x","1")}catch(e){}}else{ACC.mode="signup";ACC.msg="";accRender()}});
 accLoad();

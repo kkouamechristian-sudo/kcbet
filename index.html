@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>kcbet</title>
+<meta name="description" content="Pronostics de football et résultats publiés, sans retouche.">
+<meta name="theme-color" content="#121F2A">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-512.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css?v=17">
+<style>html,body{margin:0}</style>
+<script>try{var t=localStorage.getItem("kc-theme");if(!t&&matchMedia("(prefers-color-scheme: light)").matches)t="light";document.documentElement.setAttribute("data-theme",t||"dark")}catch(e){document.documentElement.setAttribute("data-theme","dark")}</script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><b>kcbet</b><span>Pronostics de football, résultats publiés</span></div>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#matchs" data-nav="matchs">Matchs</a>
+      <a href="#direct" data-nav="direct">Direct</a>
+      <a href="#resultats" data-nav="resultats">Résultats</a>
+      <a href="#ticket" data-nav="ticket">Ticket</a>
+      <a href="#preuves" data-nav="preuves">Preuves</a>
+      <a href="#journal" data-nav="journal">Journal</a>
+    </nav>
+    <div class="tools"><a class="tool tool-acc" id="t-acc" href="#compte">Connexion</a><button class="tool" id="t-lang" type="button">EN</button><button class="tool" id="t-theme" type="button"></button></div>
+    <div class="ticker" id="ticker" hidden><div class="ticker-move" id="ticker-move"></div></div>
+  </header>
+
+  <section data-view="matchs">
+    <h1 class="sr-only">Pronostics du jour</h1>
+    <p class="sr-only" id="m-lead"></p>
+    <div class="join" id="join" hidden>
+      <div><b>Créez votre compte gratuit</b><span>Gardez votre journal de paris et retrouvez-le sur tous vos appareils.</span></div>
+      <a class="act" href="#compte" data-join="go">S'inscrire</a>
+      <button class="join-x" type="button" data-join="x" aria-label="Masquer">×</button>
+    </div>
+    <section class="hero" id="hero" aria-label="Match en vedette" hidden></section>
+    <div data-ad="top"></div>
+    <div id="m-stale" class="warnbox" hidden></div>
+    <div class="chips strip" id="f-day" role="group" aria-label="Jour"></div>
+    <div class="split">
+      <aside class="side">
+        <h2>Compétitions</h2>
+        <div class="chips" id="f-league" role="group" aria-label="Compétition"></div>
+        <div data-ad="side"></div>
+      </aside>
+      <div class="mainc">
+        <div class="chips" id="f-kind" role="group" aria-label="Type de match"></div>
+        <div class="list" id="m-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <section data-view="direct" hidden>
+    <div>
+      <h1>En direct</h1>
+      <p class="lead" id="l-status" role="status"></p>
+    </div>
+    <div class="chips" id="l-kind" role="group" aria-label="État des matchs"></div>
+    <div class="list" id="l-list"></div>
+  </section>
+
+  <section data-view="resultats" hidden>
+    <div>
+      <h1>Tous nos pronostics, gagnés ou perdus</h1>
+      <p class="lead" id="r-lead"></p>
+    </div>
+    <div class="figures" id="r-figs"></div>
+    <div class="card" id="r-list"></div>
+  </section>
+
+  <section data-view="ticket" hidden>
+    <div>
+      <h1>Votre combiné, sans maquillage</h1>
+      <p class="lead">Chaque sélection ajoutée multiplie la cote, mais aussi la marge du bookmaker. Remplacez les cotes par celles de votre bookmaker.</p>
+    </div>
+    <div class="card">
+      <h2>Générer un ticket</h2>
+      <p class="lead">Le générateur choisit les paris les plus probables parmi les types cochés, un seul par match et au plus deux par championnat, jusqu'à la cote visée. Il affiche la vraie chance de gain.</p>
+      <div class="formgrid">
+        <label class="field">Cote visée<input id="g-target" type="text" inputmode="decimal" value="2" list="g-cotes" autocomplete="off" aria-describedby="g-msg"><datalist id="g-cotes"><option value="1,5"><option value="2"><option value="3"><option value="5"><option value="10"><option value="20"><option value="50"><option value="100"></datalist></label>
+        <label class="field">Période<select id="g-period"><option value="0">Aujourd'hui</option><option value="1" selected>Aujourd'hui et demain</option><option value="2">3 jours</option><option value="6">7 jours</option></select></label>
+
+        <label class="field">Nombre de sélections<select id="g-max"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>12</option><option>15</option><option>20</option><option>25</option><option>30</option></select></label>
+        <label class="field">Compétitions<select id="g-scope"><option value="all">Toutes</option><option value="clubs">Clubs seulement</option><option value="top">5 grands championnats</option></select></label>
+      </div>
+      <div class="field">Types de paris <span class="chips" id="g-types"><button class="chip" type="button" data-gt="__all">Tout cocher</button><button class="chip" type="button" data-gt="__none">Tout décocher</button><button class="chip" type="button" data-gt="Résultat" aria-pressed="true">Résultat</button><button class="chip" type="button" data-gt="Double chance" aria-pressed="true">Double chance</button><button class="chip" type="button" data-gt="Remboursé si nul" aria-pressed="true">Remboursé si nul</button><button class="chip" type="button" data-gt="Total de buts" aria-pressed="true">Total de buts</button><button class="chip" type="button" data-gt="Buts par équipe" aria-pressed="true">Buts par équipe</button><button class="chip" type="button" data-gt="Les deux équipes marquent" aria-pressed="true">Les deux équipes marquent</button><button class="chip" type="button" data-gt="Handicap" aria-pressed="true">Handicap</button><button class="chip" type="button" data-gt="Écart de buts" aria-pressed="false">Écart de buts</button><button class="chip" type="button" data-gt="Résultat et buts" aria-pressed="false">Résultat et buts</button><button class="chip" type="button" data-gt="Résultat et les deux marquent" aria-pressed="false">Résultat et les deux marquent</button><button class="chip" type="button" data-gt="Clean sheet" aria-pressed="false">Clean sheet</button><button class="chip" type="button" data-gt="Buts pair ou impair" aria-pressed="false">Buts pair ou impair</button><button class="chip" type="button" data-gt="Total exact" aria-pressed="false">Total exact</button><button class="chip" type="button" data-gt="Score exact" aria-pressed="false">Score exact</button><button class="chip" type="button" data-gt="Mi-temps" aria-pressed="false">Mi-temps</button><button class="chip" type="button" data-gt="2e mi-temps" aria-pressed="false">2e mi-temps</button><button class="chip" type="button" data-gt="Mi-temps / fin de match" aria-pressed="false">Mi-temps / fin de match</button><button class="chip" type="button" data-gt="Corners (total)" aria-pressed="false">Corners (total)</button><button class="chip" type="button" data-gt="Cartons (total)" aria-pressed="false">Cartons (total)</button></span></div>
+      <div class="chips"><button class="act" id="g-run" type="button">Générer le ticket</button><button class="ghost" id="g-again" type="button">Autre ticket</button></div>
+      <p class="verdict" id="g-msg" role="status"></p>
+    </div>
+    <div id="t-example" class="note" hidden></div>
+    <div class="card" id="t-legs"></div>
+    <div class="figures" id="t-figs"></div>
+    <div class="card">
+      <div class="formgrid">
+        <label class="field">Mise du ticket (FCFA)<input id="t-stake" type="number" min="0" step="any" inputmode="decimal" value="1000"></label>
+        <button class="act" id="t-log" type="button">Noter dans le journal</button>
+      </div>
+      <p class="verdict" id="t-msg" role="status"></p>
+    </div>
+  </section>
+
+  <section data-view="preuves" hidden>
+    <div>
+      <h1 id="p-title">Sur le passé, personne ne bat le marché ici</h1>
+      <p class="lead" id="p-lead"></p>
+    </div>
+    <div class="figures" id="p-figs"></div>
+    <div class="card">
+      <div>
+        <h2>Gain ou perte par stratégie</h2>
+        <p class="lead">Mise fixe à chaque pari. Le point donne le résultat moyen, le trait la fourchette à 90 %. Une stratégie n'est prouvée que si tout le trait est à droite de zéro.</p>
+      </div>
+      <div class="chips" id="f-period" role="group" aria-label="Période"></div>
+      <div id="p-ranges"></div>
+    </div>
+    <div class="card">
+      <div>
+        <h2>Les probabilités tiennent-elles parole ?</h2>
+        <p class="lead">Chaque point compare la probabilité annoncée à la fréquence observée. Sur la diagonale, l'annonce est exacte. Au-dessus, l'issue arrive plus souvent qu'annoncé.</p>
+      </div>
+      <div id="p-calib"></div>
+      <details><summary>Voir le tableau</summary><div class="scroll" id="p-calib-table"></div></details>
+    </div>
+    <div class="card">
+      <h2>Méthode et limites</h2>
+      <ul class="plain" id="p-method"></ul>
+    </div>
+  </section>
+
+  <section data-view="journal" hidden>
+    <div>
+      <h1>Vos paris, comptés honnêtement</h1>
+      <p class="lead">Notez chaque pari avant le match. Votre journal reste dans ce navigateur, personne d'autre ne le voit.</p>
+    </div>
+    <div class="figures" id="j-figs"></div>
+    <form class="card" id="j-form">
+      <h2>Nouveau pari</h2>
+      <div class="formgrid">
+        <label class="field">Match ou ticket<input id="j-label" required maxlength="120" style="font-family:var(--body)"></label>
+        <label class="field">Cote prise<input id="j-odds" type="number" min="1.01" step="0.01" inputmode="decimal" required></label>
+        <label class="field">Mise (FCFA)<input id="j-stake" type="number" min="0.01" step="any" inputmode="decimal" required></label>
+        <label class="field">Probabilité (%), si connue<input id="j-prob" type="number" min="0.1" max="99.9" step="0.1" inputmode="decimal"></label>
+        <button class="act" type="submit">Ajouter</button>
+      </div>
+      <p class="verdict" id="j-msg" role="status"></p>
+    </form>
+    <div class="card" id="j-list"></div>
+  </section>
+
+  <section data-view="compte" hidden>
+    <div>
+      <h1>Mon compte</h1>
+      <p class="lead">Un compte gratuit garde votre journal de paris en ligne, pour le retrouver sur tous vos appareils. Réservé aux adultes.</p>
+    </div>
+    <div class="card" id="acc-box"></div>
+  </section>
+
+  <section data-view="publicite" hidden>
+    <div>
+      <h1>Annoncez sur kcbet</h1>
+      <p class="lead">Des parieurs consultent kcbet chaque jour pour les pronostics, le direct et les résultats. Placez votre marque devant eux.</p>
+    </div>
+    <div class="card">
+      <h2>Emplacements</h2>
+      <ul class="plain">
+        <li><b>Bannière du haut</b> : sous le match en vedette, sur la page des pronostics.</li>
+        <li><b>Dans la liste des matchs</b> : entre les championnats, sur ordinateur et téléphone.</li>
+        <li><b>Colonne des compétitions</b> : sur ordinateur, visible pendant toute la navigation.</li>
+        <li><b>Bas des pages</b> : Résultats, Preuves et Journal.</li>
+      </ul>
+      <p class="lead">Tarifs à la semaine ou au mois, sur demande. Les annonces de paris doivent respecter la loi de votre pays et viser uniquement les adultes.</p>
+    </div>
+    <div class="card"><h2>Contact</h2><div id="p-contact"></div></div>
+  </section>
+
+  <section data-view="confidentialite" hidden>
+    <div><h1>Confidentialité</h1></div>
+    <div class="card">
+      <ul class="plain">
+        <li><b>Sans compte</b> : kcbet n'enregistre rien sur vous. Vos préférences, votre ticket et votre journal restent dans votre navigateur.</li>
+        <li><b>Avec un compte</b> : nous enregistrons votre adresse e-mail, votre mot de passe chiffré et votre journal de paris, chez notre hébergeur de comptes Supabase. Ces données servent uniquement à vous connecter et à retrouver votre journal.</li>
+        <li><b>Jamais revendues</b> : vos données ne sont ni vendues ni cédées à des annonceurs.</li>
+        <li><b>Effacement</b> : vous pouvez effacer vos paris en ligne depuis Mon compte. Pour supprimer tout le compte, écrivez au contact de la page Publicité depuis votre adresse e-mail.</li>
+        <li><b>Publicité</b> : si des publicités Google s'affichent, Google peut utiliser des cookies pour les choisir.</li>
+        <li><b>Scores en direct</b> : votre navigateur les lit directement chez ESPN, qui reçoit donc votre adresse IP.</li>
+      </ul>
+    </div>
+  </section>
+
+  <div data-ad="bottom"></div>
+  <footer>Réservé aux adultes. Le pari sportif peut faire perdre de l'argent et créer une dépendance : ne misez que ce que vous pouvez perdre, et ne cherchez jamais à vous refaire. kcbet publie des probabilités et ne garantit aucun gain. Données : football-data.co.uk, openfootball. Scores en direct : ESPN, sans garantie. <a href="#publicite">Publicité</a> · <a href="#confidentialite">Confidentialité</a></footer>
+</div>
+
+<script>
+var BUILD="17";
+fetch("data/app.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
+  window.KC=d;["config.js","i18n.js","markets.js","app.js","live.js","hero.js","ads.js","account.js"].forEach(function(u){var s=document.createElement("script");s.src=u+"?v="+BUILD+"-"+encodeURIComponent(d.generated);s.async=false;document.body.appendChild(s)});
+}).catch(function(){var h=document.querySelector("h1");if(h)h.textContent="Données indisponibles pour le moment. Réessayez dans un instant."});
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(function(){});
+</script>
+</body>
+</html>

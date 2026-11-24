@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import leagues as L
-import espn, intl, paris
+import cups, espn, intl, paris
 NY = ZoneInfo("America/New_York")
 INTL_CSV = "https://raw.githubusercontent.com/martj42/international_results/master/results.csv"
 
@@ -99,7 +99,7 @@ def register(reg, fixtures, now):
         hh, mm = (f["time"] or "12:00").split(":")[:2]
         ko = d.replace(hour=int(hh), minute=int(mm), tzinfo=LONDON).astimezone(timezone.utc)
         f["id"] = mid(f)
-        if not f.get("intl"):
+        if not f.get("espn"):
             f["ko"] = ko.isoformat()
         if f["far"] or f["id"] in known or ko <= now:
             continue
@@ -148,7 +148,7 @@ def logos(fixtures, reg):
     """Logo de chaque equipe affichee, lu chez ESPN ; une equipe sans correspondance garde ses initiales."""
     out, rosters = {}, {}
     for f in fixtures:
-        if f.get("intl"):
+        if f.get("logos"):
             for n, u in zip((f["home"], f["away"]), f.get("logos") or []):
                 if u:
                     out[n] = u
@@ -261,11 +261,11 @@ def main():
         try:
             with urllib.request.urlopen(urllib.request.Request(INTL_CSV, headers=UA), timeout=60) as r, open(os.path.join(tmp, "intl_results.csv"), "wb") as f:
                 f.write(r.read())
-            for slug in intl.COMPS:
-                for k in range(22):
+            for slug in list(intl.COMPS) + list(cups.SLUGS):
+                for k in range(22 if slug in intl.COMPS else 15):
                     day = (now + timedelta(days=k)).strftime("%Y%m%d")
                     try:
-                        with open(os.path.join(tmp, f"INTL_{slug}_{day}.json"), "w", encoding="utf-8") as f:
+                        with open(os.path.join(tmp, f"{'INTL' if slug in intl.COMPS else 'CUP'}_{slug}_{day}.json"), "w", encoding="utf-8") as f:
                             json.dump(espn.scoreboard(slug, day), f)
                     except Exception:
                         pass

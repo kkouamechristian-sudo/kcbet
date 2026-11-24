@@ -423,6 +423,10 @@ def main():
         f["sure"] = paris.sure(f["lam"][0], f["lam"][1], f["rho"], f["home"], f["away"], odds=f["odds"], ou=(f["ao25"], f["au25"]))
     ifx, itest = intl.fixtures(DATA, today)
     fx += ifx
+    import cups
+    cfx = cups.fixtures(DATA, today)
+    fx += cfx
+    print("coupes d'Europe", len(cfx))
     print("selections", len(ifx), itest)
     fx.sort(key=lambda f: (date(f["date"]), f["time"]))
     lab = lambda z: f"20{z[:2]}-{z[2:]}"

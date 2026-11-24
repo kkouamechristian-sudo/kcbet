@@ -4,9 +4,9 @@ function crest(name){const u=LOGO[name];if(u)return `<span class="crest crest-im
   return `<span class="crest" style="--h:${h}" aria-hidden="true">${esc(ini)}</span>`}
 function heroPick(){const now=Date.now(),out=[];
   const live=window.LIVE?[...window.LIVE.values()].filter(e=>e.state==="in"&&e.fx):[];
-  live.sort((a,b)=>(b.fx.top-a.fx.top));live.slice(0,3).forEach(e=>out.push({f:e.fx,ev:e}));
+  const pri=f=>f.cup?2:f.top?1:0;live.sort((a,b)=>pri(b.fx)-pri(a.fx));live.slice(0,3).forEach(e=>out.push({f:e.fx,ev:e}));
   const up=D.fixtures.filter(f=>(!f.far||f.intl)&&new Date(f.ko).getTime()>now&&new Date(f.ko).getTime()-now<48*36e5&&!out.some(o=>o.f.key===f.key));
-  up.sort((a,b)=>(b.top-a.top)||((a.intl?1:0)-(b.intl?1:0))||(new Date(a.ko)-new Date(b.ko)));
+  up.sort((a,b)=>(pri(b)-pri(a))||((a.intl?1:0)-(b.intl?1:0))||(new Date(a.ko)-new Date(b.ko)));
   up.slice(0,8-out.length).forEach(f=>out.push({f,ev:null}));
   return out}
 function countdown(ko){const m=Math.round((new Date(ko)-Date.now())/6e4);if(m<=0)return T("Coup d'envoi imminent","Kick-off imminent");const h=Math.floor(m/60),r=m%60;

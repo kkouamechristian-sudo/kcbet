@@ -11,7 +11,7 @@ const key=f=>(f.date+"|"+f.home+"|"+f.away).replace(/[^A-Za-z0-9]/g,"");
 D.fixtures.forEach(f=>f.key=key(f));
 const byKey=Object.fromEntries(D.fixtures.map(f=>[f.key,f]));
 const LOGO=D.logos||{};
-const FLAG={"Angleterre":"gb-eng","Écosse":"gb-sct","Espagne":"es","Allemagne":"de","Italie":"it","France":"fr","Pays-Bas":"nl","Belgique":"be","Portugal":"pt","Turquie":"tr","Grèce":"gr","Argentine":"ar","Autriche":"at","Brésil":"br","Chine":"cn","Danemark":"dk","Finlande":"fi","Irlande":"ie","Japon":"jp","Mexique":"mx","Norvège":"no","Pologne":"pl","Roumanie":"ro","Suède":"se","Suisse":"ch","États-Unis":"us","Europe":"eu"};
+const FLAG={"Australie":"au","Bolivie":"bo","Chili":"cl","Colombie":"co","Costa Rica":"cr","Chypre":"cy","Tchéquie":"cz","Équateur":"ec","Ghana":"gh","Guatemala":"gt","Honduras":"hn","Inde":"in","Israël":"il","Kenya":"ke","Arabie saoudite":"sa","Nigeria":"ng","Irlande du Nord":"gb-nir","Paraguay":"py","Pérou":"pe","Afrique du Sud":"za","Russie":"ru","Salvador":"sv","Ouganda":"ug","Uruguay":"uy","Venezuela":"ve","Pays de Galles":"gb-wls","Zambie":"zm","Angleterre":"gb-eng","Écosse":"gb-sct","Espagne":"es","Allemagne":"de","Italie":"it","France":"fr","Pays-Bas":"nl","Belgique":"be","Portugal":"pt","Turquie":"tr","Grèce":"gr","Argentine":"ar","Autriche":"at","Brésil":"br","Chine":"cn","Danemark":"dk","Finlande":"fi","Irlande":"ie","Japon":"jp","Mexique":"mx","Norvège":"no","Pologne":"pl","Roumanie":"ro","Suède":"se","Suisse":"ch","États-Unis":"us","Europe":"eu"};
 const imgTag=(u,c)=>u?`<img class="${c}" src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">`:"";
 const tlogo=(n,u)=>imgTag(u||LOGO[n],"tl");
 const flagOf=lab=>{const c=FLAG[String(lab).split(" · ")[0]];return c?imgTag(`https://flagcdn.com/w40/${c}.png`,"flag"):""};
@@ -39,7 +39,7 @@ function detailHTML(f){
   const rows=ISSUES.map((n,i)=>`<tr><td>${n==="1"?esc(f.home):n==="2"?esc(f.away):"Nul"}</td><td>${pct(f.market[i])}</td><td>${nf(1/f.market[i])}</td>${!f.odds?"":`<td>${nf(f.odds[i])}</td><td>${nf(f.max[i])}</td>`}
   <td><input class="mini" id="mc-${f.key}-${i}" data-mine="${f.key}" data-i="${i}" type="number" min="1.01" step="0.01" inputmode="decimal" aria-label="Ma cote pour ${n}" value="${esc(S.mine[f.key+i]||"")}"></td>
   ${!f.odds?"":`<td><button class="ghost" type="button" data-add="${f.key}" data-i="${i}">${inT.includes(i)?"Retirer":"Au ticket"}</button></td>`}</tr>`).join("");
-  return `${barHTML(f.market)}${f.sure?`<p class="note">Pari le plus sûr : <b>${esc(f.sure.label)}</b>, ${pct(f.sure.p)}, ${f.sure.odds?"cote "+nf(f.sure.odds):"juste prix "+nf(1/f.sure.p)}.</p>`:""}${f.cup?`<p class="note">Coupe d'Europe : probabilités tirées des cotes DraftKings relayées par ESPN, marge retirée${f.ou?`, et de la ligne de buts à ${String(f.ou[0]).replace(".",",")}`:""}. Ces pronostics comptent dans nos résultats.</p>`:""}${f.intl?`<p class="warnbox">Sélections nationales : probabilités tirées du classement Elo (${f.elo[0]} contre ${f.elo[1]}), sans cote du marché. Méthode testée sur ${D.intl_test?D.intl_test.n.toLocaleString(LOC):"?"} matchs récents, plus précise que le hasard, non comparée aux cotes.</p>`:f.far?'<p class="warnbox">Prévision Dixon-Coles seule, sans cote du marché, donc moins précise. La date peut changer, et elle ne compte pas dans nos résultats.</p>':""}
+  return `${barHTML(f.market)}${f.sure?`<p class="note">Pari le plus sûr : <b>${esc(f.sure.label)}</b>, ${pct(f.sure.p)}, ${f.sure.odds?"cote "+nf(f.sure.odds):"juste prix "+nf(1/f.sure.p)}.</p>`:""}${f.est?`<p class="warnbox">Prévision tirée du classement actuel (buts marqués et encaissés), sans cote du marché. Méthode simple, non testée, qui ne compte pas dans nos résultats.</p>`:""}${f.cup?`<p class="note">Coupe d'Europe : probabilités tirées des cotes DraftKings relayées par ESPN, marge retirée${f.ou?`, et de la ligne de buts à ${String(f.ou[0]).replace(".",",")}`:""}. Ces pronostics comptent dans nos résultats.</p>`:""}${f.intl?`<p class="warnbox">Sélections nationales : probabilités tirées du classement Elo (${f.elo[0]} contre ${f.elo[1]}), sans cote du marché. Méthode testée sur ${D.intl_test?D.intl_test.n.toLocaleString(LOC):"?"} matchs récents, plus précise que le hasard, non comparée aux cotes.</p>`:f.far?'<p class="warnbox">Prévision Dixon-Coles seule, sans cote du marché, donc moins précise. La date peut changer, et elle ne compte pas dans nos résultats.</p>':""}
   <div class="scroll"><table><thead><tr><th>Issue</th><th>Proba</th><th>Juste prix</th>${!f.odds?"":"<th>Moyenne</th><th>Meilleure</th>"}<th>Ma cote</th>${!f.odds?"":"<th></th>"}</tr></thead><tbody>${rows}</tbody></table></div>
   <p class="verdict" id="v-${f.key}" role="status">${[0,1,2].map(i=>verdict(f,i)).filter(Boolean).join("<br>")}</p>
   <div class="second">
@@ -51,7 +51,7 @@ function detailHTML(f){
   </div>
   ${f.signal?`<p class="warnbox">Signal Dixon-Coles : ${esc(f.signal.label)} à ${nf(f.signal.odds)}, écart de ${sgn(f.signal.edge)}. ${f.top?`Sur l'historique, cette règle a donné ${sgn(DCR.roi)} sur ${DCR.n.toLocaleString(LOC)} paris (fourchette ${sgn(DCR.lo)} à ${sgn(DCR.hi)}). Ce n'est pas prouvé.`:"Cette règle n'a pas été testée sur ce championnat."}</p>`:f.thin?'<p class="note">Trop peu de matchs joués par une équipe : probabilités Dixon-Coles fragiles, pas de signal.</p>':""}
   <h2>Tous les types de paris</h2>
-  <p class="lead">${f.intl?"Calculé avec le classement Elo.":f.far?"Calculé avec Dixon-Coles.":"Calculé à partir des cotes du match."} Colonnes : probabilité, puis juste prix. Comparez avec la cote de votre bookmaker.${f.cc&&(f.cc[0]||f.cc[1])?" Corners et cartons : moyennes récentes des équipes, estimation simple non testée.":""}</p>
+  <p class="lead">${f.est?"Calculé avec le classement actuel.":f.intl?"Calculé avec le classement Elo.":f.far?"Calculé avec Dixon-Coles.":"Calculé à partir des cotes du match."} Colonnes : probabilité, puis juste prix. Comparez avec la cote de votre bookmaker.${f.cc&&(f.cc[0]||f.cc[1])?" Corners et cartons : moyennes récentes des équipes, estimation simple non testée.":""}</p>
   ${marketsHTML(f)}
   ${big(f)&&f.top?`<p class="note">Gros favori : ${BIG.all.wins} gagnés sur ${BIG.all.n} sur l'historique, soit ${sgn(BIG.all.roi)} de rendement (fourchette ${sgn(BIG.all.lo)} à ${sgn(BIG.all.hi)}). Ce n'est pas prouvé.</p>`:""}`}
 function dayChip(d,i){const t=parseD(d),now=new Date();now.setHours(0,0,0,0);const n=Math.round((t-now)/864e5);
@@ -60,7 +60,7 @@ function renderMatches(){
   const have=[...new Set(D.fixtures.map(f=>f.date))].sort((a,b)=>parseD(a)-parseD(b)),days=[];
   if(have.length){const t0=new Date();t0.setHours(0,0,0,0);const end=parseD(have[have.length-1]);for(let t=new Date(Math.min(t0,parseD(have[0])));t<=end;t.setDate(t.getDate()+1)){if(t<t0)continue;days.push(String(t.getDate()).padStart(2,"0")+"/"+String(t.getMonth()+1).padStart(2,"0")+"/"+t.getFullYear())}}
   if(!days.includes(S.day))S.day=days.find(d=>have.includes(d))||days[0]||"";
-  const onDay=f=>f.date===S.day,kindOk=f=>S.kind==="all"||(S.kind==="big"?big(f):S.kind==="sig"?!!f.signal:S.kind==="sure"?!!(f.sure&&f.sure.p>=.7):f.far&&!f.intl);
+  const onDay=f=>f.date===S.day,kindOk=f=>S.kind==="all"||(S.kind==="big"?big(f):S.kind==="sig"?!!f.signal:S.kind==="sure"?!!(f.sure&&f.sure.p>=.7):f.far&&!f.intl&&!f.est);
   const lgs=[...new Set(D.fixtures.map(f=>f.lg))].sort((a,b)=>{const x=D.fixtures.find(f=>f.lg===a),y=D.fixtures.find(f=>f.lg===b);return ((y.cup?2:y.top?1:0)-(x.cup?2:x.top?1:0))||LG[a].localeCompare(LG[b],"fr")});
   const count=l=>D.fixtures.filter(f=>f.lg===l&&onDay(f)&&kindOk(f)).length;
   chips($("f-day"),days.map(d=>[d,dayChip(d)]),S.day,v=>{S.day=v;renderMatches()});
@@ -77,7 +77,7 @@ function renderMatches(){
   for(const[lg,ms]of G){if(gi&&gi%3===0&&typeof adSlot==="function")h+=adSlot("feed");gi++;h+=`<div class="group"><span>${lg==="__sure"?"Les plus sûrs":flagOf(LG[lg])+esc(LG[lg])}</span><small>${ms.length}</small></div>`;
     for(const f of ms){const open=S.open.has(f.key),ev=window.LIVE&&window.LIVE.get(f.key),on=ev&&ev.state!=="pre";
       const lp=ev&&ev.state==="in"&&typeof liveProbs==="function"?liveProbs(ev):null,pm=lp||f.market,m=Math.max(...pm),i=pm.indexOf(m);
-      const tm=on?clockLabel(ev):f.far&&!f.intl?"Prév.":new Date(f.ko).toLocaleTimeString(LOC,{hour:"2-digit",minute:"2-digit"});
+      const tm=on?clockLabel(ev):f.far&&!f.intl&&!f.est?"Prév.":new Date(f.ko).toLocaleTimeString(LOC,{hour:"2-digit",minute:"2-digit"});
       const su=f.sure;
       h+=`<article class="match${on?" live":""}"><button class="mhead" type="button" data-open="${f.key}" aria-expanded="${open}">
         <span class="time${ev&&ev.state==="in"?" now":""}">${esc(tm)}</span>

@@ -5,7 +5,7 @@ function crest(name){const u=LOGO[name];if(u)return `<span class="crest crest-im
 function heroPick(){const now=Date.now(),out=[];
   const live=window.LIVE?[...window.LIVE.values()].filter(e=>e.state==="in"&&e.fx):[];
   const pri=f=>f.cup?2:f.top?1:0;live.sort((a,b)=>pri(b.fx)-pri(a.fx));live.slice(0,3).forEach(e=>out.push({f:e.fx,ev:e}));
-  const up=D.fixtures.filter(f=>(!f.far||f.intl)&&new Date(f.ko).getTime()>now&&new Date(f.ko).getTime()-now<48*36e5&&!out.some(o=>o.f.key===f.key));
+  const up=D.fixtures.filter(f=>(!f.far||f.intl||f.est)&&new Date(f.ko).getTime()>now&&new Date(f.ko).getTime()-now<48*36e5&&!out.some(o=>o.f.key===f.key));
   up.sort((a,b)=>(pri(b)-pri(a))||((a.intl?1:0)-(b.intl?1:0))||(new Date(a.ko)-new Date(b.ko)));
   up.slice(0,8-out.length).forEach(f=>out.push({f,ev:null}));
   return out}

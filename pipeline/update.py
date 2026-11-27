@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import leagues as L
-import cups, espn, intl, paris
+import cups, espn, espnleagues, intl, paris
 NY = ZoneInfo("America/New_York")
 INTL_CSV = "https://raw.githubusercontent.com/martj42/international_results/master/results.csv"
 
@@ -103,6 +103,8 @@ def register(reg, fixtures, now):
             f["ko"] = ko.isoformat()
         if f["far"] or f["id"] in known or ko <= now:
             continue
+        if any(r["lg"] == f["lg"] and r["date"] == f["date"] and espn.same_match(r["home"], r["away"], f["home"], f["away"])[0] for r in reg):
+            continue  # meme match deja enregistre sous un autre nom d'equipe
         i = max(range(3), key=lambda k: f["market"][k])
         reg.append(dict(id=f["id"], lg=f["lg"], league=f["league"], country=f["country"], date=f["date"], ko=f["ko"], home=f["home"], away=f["away"],
                         created=now.isoformat(), big=f["market"][i] >= .73,
@@ -176,12 +178,12 @@ def settle_espn(reg, now):
     """Scores finaux ESPN pour les matchs termines que la source principale n'a pas encore publies."""
     cache, n = {}, 0
     for x in reg:
-        if x["result"] or x["void"] or x["lg"] not in L.ESPN:
+        if x["result"] or x["void"] or (x["lg"] not in L.ESPN and not x["lg"].startswith("E_")):
             continue
         ko = datetime.fromisoformat(x["ko"])
         if now - ko < timedelta(hours=2, minutes=30):
             continue
-        slug, best, bs = L.ESPN[x["lg"]], None, 0
+        slug, best, bs = L.ESPN.get(x["lg"]) or x["lg"][2:], None, 0
         for day in {ko.astimezone(NY).strftime("%Y%m%d"), ko.strftime("%Y%m%d")}:
             if (slug, day) not in cache:
                 try:
@@ -271,6 +273,7 @@ def main():
                         pass
         except (urllib.error.URLError, OSError) as e:
             print("selections indisponibles", e)
+        espnleagues.collect(tmp, now)
         iso = email.utils.parsedate_to_datetime(fetched).isoformat() if fetched else now.isoformat()
         out = os.path.join(tmp, "model.json")
         subprocess.run([sys.executable, os.path.join(HERE, "model.py"), tmp, out, iso, ",".join(seasons)],

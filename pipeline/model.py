@@ -426,6 +426,14 @@ def main():
     import cups
     cfx = cups.fixtures(DATA, today)
     fx += cfx
+    import espnleagues
+    fd_slugs = {v: k for k, v in L.ESPN.items() if k not in ("UCL", "UEL", "UECL")}
+    efx = espnleagues.fixtures(DATA, today, fx, fd_slugs)
+    for f in efx:
+        if f["league"] is None:
+            f["country"], f["league"] = L.info(f["lg"])
+    fx += efx
+    print("championnats ESPN : matchs", len(efx), "dont avec cotes", sum(1 for f in efx if not f["far"]))
     print("coupes d'Europe", len(cfx))
     print("selections", len(ifx), itest)
     fx.sort(key=lambda f: (date(f["date"]), f["time"]))
